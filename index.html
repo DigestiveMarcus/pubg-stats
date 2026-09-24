@@ -135,6 +135,20 @@
   h3.sub { font: 700 1.6rem/1 var(--display); margin: 2.5rem 0 1rem; }
   @media (max-width: 50rem) { .gunwrap { grid-template-columns: 1fr; } .gunwrap .tall { min-height: 24rem; } }
 
+  /* Kartvy */
+  .geo-ctl { display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; margin-bottom: 0.75rem; }
+  .geo-ctl .seg { flex-wrap: wrap; }
+  .geo { display: grid; grid-template-columns: minmax(0, 46rem) minmax(12rem, 1fr); gap: 1.5rem 2rem; align-items: start; }
+  .geo-map { position: relative; width: 100%; aspect-ratio: 1; background: var(--ridge); border: 1px solid var(--line); }
+  .geo-map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .geo-side .big { display: block; font: 900 2.6rem/1 var(--display); }
+  .geo-side p { margin: 0 0 1rem; color: var(--dust); }
+  .geo-side ul { list-style: none; margin: 0; padding: 0; }
+  .geo-side li { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0; }
+  .geo-side li i { width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 1px solid #1a1f1b; flex: none; }
+  .geo-side a { color: var(--pan); }
+  @media (max-width: 50rem) { .geo { grid-template-columns: 1fr; } }
+
   /* Tabeller */
   .scroll { overflow-x: auto; border-top: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; }
@@ -285,6 +299,24 @@
     <div class="scroll"><table id="maps"></table></div>
   </section>
 
+  <section id="s-geo" data-nav="På kartan">
+    <h2>På kartan</h2>
+    <p class="note">Var ni landar, dör och tar kills, från matchhistoriken. Kartbilder från PUBG:s officiella API-material.</p>
+    <div class="geo-ctl">
+      <div class="seg" id="geoLayer" role="group" aria-label="Visa">
+        <button data-v="ld" aria-pressed="true">Landningar</button>
+        <button data-v="dl" aria-pressed="false">Dödsfall</button>
+        <button data-v="kl" aria-pressed="false">Kills</button>
+      </div>
+      <div class="seg" id="geoMap" role="group" aria-label="Karta"></div>
+    </div>
+    <div class="picker" id="geoPlayer"></div>
+    <div class="geo">
+      <div class="geo-map"><canvas id="geoCanvas" aria-label="Karta med markeringar"></canvas></div>
+      <div class="geo-side" id="geoSide"></div>
+    </div>
+  </section>
+
   <section id="s-nemesis">
     <h2>Ärkefiender</h2>
     <p class="note">Den fiende som har dödat varje spelare flest gånger.</p>
@@ -401,7 +433,9 @@ const AWARDS = [
   { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all" };
+const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all" };
+const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
+  Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
 let data, history = { matches: {} };
 const charts = {};
 const nameOf = id => data.players.find(p => p.id === id)?.name ?? "?";
@@ -730,6 +764,95 @@ function renderMaps(list) {
     }).join("") + "</tbody>";
 }
 
+const mapImgs = {};
+function mapImage(key, done) {
+  if (mapImgs[key]) { if (mapImgs[key].complete) done(mapImgs[key]); else mapImgs[key].addEventListener("load", () => done(mapImgs[key]), { once: true }); return; }
+  const im = new Image(); mapImgs[key] = im;
+  im.onload = () => done(im); im.onerror = () => done(null);
+  im.src = `maps/${key}.jpg`;
+}
+function palette(stops) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 1;
+  const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 256, 0);
+  stops.forEach(([o, col]) => g.addColorStop(o, col)); x.fillStyle = g; x.fillRect(0, 0, 256, 1);
+  return x.getImageData(0, 0, 256, 1).data;
+}
+let PAL;
+function heat(ctx, pts, W, rad, pal) {
+  const off = document.createElement("canvas"); off.width = off.height = W;
+  const o = off.getContext("2d");
+  for (const [x, y] of pts) {
+    const g = o.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, "rgba(0,0,0,0.3)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    o.fillStyle = g; o.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  const img = o.getImageData(0, 0, W, W), d = img.data;
+  let max = 0;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > max) max = d[i];
+  if (!max) return;
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3]; if (a < 3) { d[i + 3] = 0; continue; }
+    const t = a / max, p = Math.floor(t * 255) * 4;
+    d[i] = pal[p]; d[i + 1] = pal[p + 1]; d[i + 2] = pal[p + 2]; d[i + 3] = Math.round(Math.min(1, t * 1.6) ** 0.8 * 215);
+  }
+  o.putImageData(img, 0, 0); ctx.drawImage(off, 0, 0);
+}
+
+function renderGeo(list) {
+  PAL ??= { dl: palette([[0, "#F2A900"], [0.5, "#E0672A"], [1, "#B3261E"]]), kl: palette([[0, "#9BBF7A"], [0.55, "#F2A900"], [1, "#FFF3C4"]]) };
+  const ms = filteredMatches().filter(m => MAP_SIZE[m.map] && Object.values(m.p).some(s => s.ld || s.dl || (s.kl && s.kl.length)));
+  const counts = {}; ms.forEach(m => counts[m.map] = (counts[m.map] || 0) + 1);
+  const maps = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const side = document.getElementById("geoSide"), cv = document.getElementById("geoCanvas");
+  document.getElementById("geoMap").innerHTML = maps.map(k =>
+    `<button data-v="${k}" aria-pressed="${k === state.geoMap}">${mapName(k)}</button>`).join("");
+  if (!maps.length) {
+    cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+    document.getElementById("geoPlayer").innerHTML = "";
+    side.innerHTML = `<p>Fylls på när matchhistoriken har hämtats med kartdata.</p>`;
+    return;
+  }
+  if (!maps.includes(state.geoMap)) { state.geoMap = maps[0]; renderGeo(list); return; }
+  if (state.geoPlayer !== "all" && !list.some(r => r.id === state.geoPlayer)) state.geoPlayer = "all";
+  document.getElementById("geoPlayer").innerHTML =
+    `<button data-id="all" aria-pressed="${state.geoPlayer === "all"}">Hela gänget</button>` +
+    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.geoPlayer}">${esc(r.name)}</button>`).join("");
+
+  const key = state.geoMap, size = MAP_SIZE[key], layer = state.geoLayer;
+  const who = state.geoPlayer === "all" ? list : list.filter(r => r.id === state.geoPlayer);
+  const pts = [];
+  for (const m of ms) if (m.map === key) for (const r of who) {
+    const s = m.p[r.id]; if (!s) continue;
+    if (layer === "kl") (s.kl || []).forEach(p => pts.push({ p, r }));
+    else if (s[layer]) pts.push({ p: s[layer], r });
+  }
+
+  const dpr = Math.min(devicePixelRatio || 1, 2), W = Math.round(cv.clientWidth * dpr) || 800;
+  cv.width = cv.height = W;
+  const ctx = cv.getContext("2d");
+  mapImage(key, im => {
+    if (state.geoMap !== key || state.geoLayer !== layer) return;
+    ctx.clearRect(0, 0, W, W);
+    if (im) { ctx.drawImage(im, 0, 0, W, W); ctx.fillStyle = "rgba(20,26,22,0.35)"; ctx.fillRect(0, 0, W, W); }
+    const xy = ({ p }) => [p[0] / size * W, p[1] / size * W];
+    if (layer === "ld") {
+      for (const x of pts) {
+        const [px, py] = xy(x);
+        ctx.beginPath(); ctx.arc(px, py, 5.5 * dpr, 0, Math.PI * 2);
+        ctx.fillStyle = x.r.color; ctx.fill(); ctx.lineWidth = 1.5 * dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
+      }
+    } else {
+      heat(ctx, pts.map(xy), W, W * (size >= 8000 ? 0.028 : 0.04), PAL[layer]);
+    }
+  });
+
+  const label = { ld: "landningar", dl: "dödsfall", kl: "kills" }[layer];
+  const perPlayer = who.map(r => [r, pts.filter(x => x.r === r).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+  side.innerHTML = `<span class="big">${pts.length}</span><p>${label} på ${mapName(key)} (${counts[key]} matcher)</p>
+    <ul>${perPlayer.map(([r, n]) => `<li><i style="background:${layer === "ld" ? r.color : "transparent"};${layer === "ld" ? "" : "border:0;width:0"}"></i>${esc(r.name)}<span style="margin-left:auto;color:var(--dust)">${n}</span></li>`).join("")}</ul>
+    <p style="margin-top:1.25rem">Vill du se loot, fordon och hemliga rum? Kolla <a href="https://www.pubgintel.com/pubg-maps" target="_blank" rel="noopener">PUBGIntels interaktiva karta</a>.</p>`;
+}
+
 function renderNemesis(list) {
   const ours = new Set(data.players.map(p => p.name));
   const tiles = list.map(r => {
@@ -818,6 +941,7 @@ function render() {
   renderDuos();
   renderGuns(list);
   renderMaps(list);
+  renderGeo(list);
   renderNemesis(list);
   renderModes();
   renderCard(list);
@@ -881,6 +1005,22 @@ document.getElementById("picker").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.player = b.dataset.id; renderCard(rows());
 });
+document.getElementById("geoLayer").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.geoLayer = b.dataset.v;
+  e.currentTarget.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  renderGeo(rows());
+});
+document.getElementById("geoMap").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.geoMap = b.dataset.v; renderGeo(rows());
+});
+document.getElementById("geoPlayer").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.geoPlayer = b.dataset.id; renderGeo(rows());
+});
+let geoResize;
+addEventListener("resize", () => { clearTimeout(geoResize); geoResize = setTimeout(() => data && renderGeo(rows()), 200); });
 document.getElementById("gunPicker").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.gun = b.dataset.id; renderGuns(rows());
