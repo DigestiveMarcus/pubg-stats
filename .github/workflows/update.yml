@@ -24,6 +24,7 @@ jobs:
       - run: node fetch.js
         env:
           PUBG_API_KEY: ${{ secrets.PUBG_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       - name: Spara statistik
         run: |
           git config user.name "github-actions"
