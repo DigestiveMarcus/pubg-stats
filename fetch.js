@@ -75,7 +75,8 @@ async function updateHistory(players) {
   const ours = new Set(players.map(p => p.id));
 
   const todo = [...new Set(players.flatMap(p => p.matchIds))]
-    .filter(id => !hist.matches[id] && !hist.skip[id]);
+    // Nya matcher, plus redan sparade matcher som saknar bot-data (sparade innan den funktionen fanns)
+    .filter(id => !hist.skip[id] && (!hist.matches[id] || Object.values(hist.matches[id].p).some(x => x.bk == null)));
   console.log(`${todo.length} nya matcher, hämtar max ${MAX_NEW_MATCHES}`);
 
   let added = 0;
@@ -86,13 +87,22 @@ async function updateHistory(players) {
       // Bara vanliga matcher (inte ranked, custom, event, träning)
       if (a.matchType !== "official" || !MODES.includes(a.gameMode)) { hist.skip[id] = a.createdAt; continue; }
 
-      // Telemetrin innehåller varje knock: LogPlayerMakeGroggy med victim = den som knockades
+      // Telemetrin innehåller varje händelse i matchen:
+      //  LogPlayerMakeGroggy -> victim = den som knockades
+      //  LogPlayerKillV2     -> killer = den som fick killen; bottar har accountId som börjar med "ai."
       const asset = m.included.find(x => x.type === "asset");
       const tel = await free(asset.attributes.URL);
-      const knocked = {};
+      const knocked = {}, kills = {}, botKills = {};
       for (const e of tel) {
-        const v = e._T === "LogPlayerMakeGroggy" && e.victim?.accountId;
-        if (v && ours.has(v)) knocked[v] = (knocked[v] || 0) + 1;
+        if (e._T === "LogPlayerMakeGroggy") {
+          const v = e.victim?.accountId;
+          if (ours.has(v)) knocked[v] = (knocked[v] || 0) + 1;
+        } else if (e._T === "LogPlayerKillV2") {
+          const k = e.killer?.accountId;
+          if (!ours.has(k) || e.victim?.accountId === k) continue;
+          kills[k] = (kills[k] || 0) + 1;
+          if (String(e.victim?.accountId).startsWith("ai.")) botKills[k] = (botKills[k] || 0) + 1;
+        }
       }
 
       const p = {};
@@ -103,10 +113,11 @@ async function updateHistory(players) {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
           hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
           dead: s.deathType === "alive" ? 0 : 1, knocked: knocked[s.playerId] || 0,
+          tk: kills[s.playerId] || 0, bk: botKills[s.playerId] || 0,
         };
       }
+      if (!hist.matches[id]) added++;
       hist.matches[id] = { t: a.createdAt, mode: a.gameMode, map: a.mapName, p };
-      added++;
     } catch (e) {
       console.warn(`Match ${id} hoppades över: ${e.message}`);
     }
