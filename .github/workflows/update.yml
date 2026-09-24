@@ -30,4 +30,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add stats.json history.json
-          git diff --staged --quiet || (git commit -m "Uppdatera statistik" && git push)
+          git diff --staged --quiet && exit 0
+          git commit -m "Uppdatera statistik"
+          git pull --rebase
+          git push
