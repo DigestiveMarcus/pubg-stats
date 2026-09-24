@@ -149,6 +149,39 @@
   .geo-side a { color: var(--pan); }
   @media (max-width: 50rem) { .geo { grid-template-columns: 1fr; } }
 
+  /* Matchlogg */
+  .log { border-top: 1px solid var(--line); }
+  details.match { border-bottom: 1px solid var(--line); }
+  details.match > summary { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem 4rem; align-items: center; gap: 0.4rem 1rem; padding: 0.7rem 0.25rem; cursor: pointer; list-style: none; }
+  details.match > summary::-webkit-details-marker { display: none; }
+  details.match > summary:hover { background: var(--ridge); }
+  details.match > summary:focus-visible { outline: 2px solid var(--pan); outline-offset: -2px; }
+  .m-when { color: var(--dust); font-size: 0.9rem; line-height: 1.3; }
+  .m-when b { display: block; color: var(--sand); font-weight: 600; font-size: 1rem; }
+  .m-who { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; }
+  .m-who span { white-space: nowrap; }
+  .m-who i { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0.35rem; }
+  .m-who small { color: var(--dust); }
+  .m-place { font: 900 2rem/1 var(--display); text-align: right; color: var(--dust); }
+  .m-place.top10 { color: var(--sand); } .m-place.win { color: var(--pan); }
+  .m-place small { display: block; font: 500 0.75rem var(--body); color: var(--dust); }
+  .m-kills { text-align: right; color: var(--dust); font-size: 0.9rem; line-height: 1.2; }
+  .m-kills b { display: block; color: var(--sand); font-size: 1.15rem; }
+  details.match.win > summary { box-shadow: inset 3px 0 0 var(--pan); }
+  .m-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem 1.5rem; padding: 0.5rem 0.25rem 1.5rem; }
+  .m-body table { min-width: 44rem; }
+  .m-body td small { display: inline; }
+  .m-mapwrap { max-width: 24rem; }
+  .m-map { position: relative; aspect-ratio: 1; background: var(--ridge); border: 1px solid var(--line); }
+  .m-map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .m-legend { color: var(--dust); font-size: 0.85rem; margin-top: 0.4rem; }
+  .more { margin-top: 1rem; background: none; border: 1px solid var(--line); color: var(--sand); font: 600 0.95rem var(--body); padding: 0.55rem 1rem; border-radius: 4px; cursor: pointer; }
+  @media (max-width: 44rem) {
+    details.match > summary { grid-template-columns: 1fr auto auto; }
+    .m-who { grid-column: 1 / -1; grid-row: 2; }
+    .m-body { grid-template-columns: 1fr; }
+  }
+
   /* Tabeller */
   .scroll { overflow-x: auto; border-top: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; }
@@ -317,6 +350,13 @@
     </div>
   </section>
 
+  <section id="s-log" data-nav="Matchlogg">
+    <h2>Matchlogg</h2>
+    <p class="note">Alla matcher där minst två från gänget var med, senaste först. Klicka på en match för detaljer.</p>
+    <div class="log" id="log"></div>
+    <button class="more" id="logMore" hidden>Visa fler matcher</button>
+  </section>
+
   <section id="s-nemesis">
     <h2>Ärkefiender</h2>
     <p class="note">Den fiende som har dödat varje spelare flest gånger.</p>
@@ -433,7 +473,7 @@ const AWARDS = [
   { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all" };
+const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15 };
 const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
   Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
 let data, history = { matches: {} };
@@ -457,7 +497,7 @@ function sumStats(list) {
   return out;
 }
 
-const filteredMatches = () => Object.values(history.matches)
+const filteredMatches = () => Object.entries(history.matches).map(([id, m]) => (m.id = id, m))
   .filter(m => modeKeys().includes(m.mode)).sort((a, b) => a.t.localeCompare(b.t));
 
 const playerHistory = (id, ms) => ms.filter(m => m.p[id]).map(m => ({ ...m.p[id], t: m.t, map: m.map, mode: m.mode }));
@@ -859,6 +899,90 @@ function renderGeo(list) {
     <p style="margin-top:1.25rem">Vill du se loot, fordon och hemliga rum? Kolla <a href="https://www.pubgintel.com/pubg-maps" target="_blank" rel="noopener">PUBGIntels interaktiva karta</a>.</p>`;
 }
 
+const modeLabel = m => { const [g, f] = m.split("-"); return g[0].toUpperCase() + g.slice(1) + (f ? " FPP" : " TPP"); };
+const WEEKDAY = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
+
+function renderLog() {
+  const ms = filteredMatches().filter(m => Object.keys(m.p).length >= 2).reverse();
+  const el = document.getElementById("log"), more = document.getElementById("logMore");
+  if (!ms.length) { el.innerHTML = empty(Object.keys(history.matches).length ? "Inga matcher med minst två från gänget i det här läget." : NO_HIST); more.hidden = true; return; }
+  const open = new Set([...el.querySelectorAll("details[open]")].map(d => d.dataset.id));
+  el.innerHTML = ms.slice(0, state.logN).map(m => {
+    const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
+    const places = [...new Set(ids.map(id => m.p[id].place))].sort((a, b) => a - b);
+    const best = places[0], d = new Date(m.t);
+    const kills = sum(ids, id => m.p[id].k), dmg = sum(ids, id => m.p[id].dmg);
+    const cls = best === 1 ? "win" : best <= 10 ? "top10" : "";
+    return `<details class="match ${best === 1 ? "win" : ""}" data-id="${esc(m.id)}" ${open.has(m.id) ? "open" : ""}>
+      <summary>
+        <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}</span>
+        <span class="m-who">${ids.map(id => `<span><i style="background:${colorOf(id)}"></i>${esc(nameOf(id))} <small>${m.p[id].k} kills</small></span>`).join("")}</span>
+        <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${places.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
+        <span class="m-kills"><b>${kills}</b>kills<br>${kfmt(dmg)} skada</span>
+      </summary>
+      <div class="m-body"></div>
+    </details>`;
+  }).join("");
+  more.hidden = ms.length <= state.logN;
+  more.textContent = `Visa fler matcher (${ms.length - state.logN} kvar)`;
+  el.querySelectorAll("details[open]").forEach(fillMatch);
+}
+
+function fillMatch(det) {
+  const m = history.matches[det.dataset.id], body = det.querySelector(".m-body");
+  if (!m || body.dataset.done) return;
+  body.dataset.done = 1;
+  const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
+  const favWeapon = s => { const e = Object.entries(s.w || {}).sort((a, b) => b[1] - a[1])[0]; return e ? weaponName(e[0]) : "–"; };
+  const death = s => !s.dead ? "Överlevde" : s.kb ? `${esc(s.kb.n)}${s.kb.bot ? " (bot)" : ""}` : "Zonen eller okänt";
+  body.innerHTML = `<div class="scroll"><table>
+    <thead><tr><th>Spelare</th><th>Plac.</th><th>Kills</th><th>Assists</th><th>Knockar</th><th>Skada</th><th>Revives</th><th>Överlevde</th><th>Vapen</th><th>Dödad av</th></tr></thead>
+    <tbody>${ids.map(id => { const s = m.p[id]; return `<tr>
+      <td><span style="color:${colorOf(id)}">●</span> ${esc(nameOf(id))}</td><td>#${s.place}</td><td>${s.k}</td><td>${s.a}</td><td>${s.dbno}</td>
+      <td>${s.dmg}</td><td>${s.rev}</td><td>${time(s.surv)}</td><td>${favWeapon(s)}</td><td>${death(s)}</td></tr>`; }).join("")}</tbody>
+  </table></div>
+  ${MAP_SIZE[m.map] ? `<div class="m-mapwrap"><div class="m-map"><canvas></canvas></div><p class="m-legend">● landning &nbsp; ✕ dödsfall &nbsp; · kill &nbsp; (inzoomat på matchens område)</p></div>` : ""}`;
+  const cv = body.querySelector("canvas");
+  if (!cv) return;
+  const size = MAP_SIZE[m.map], dpr = Math.min(devicePixelRatio || 1, 2), W = Math.round(cv.clientWidth * dpr) || 600;
+  cv.width = cv.height = W;
+  const ctx = cv.getContext("2d");
+  // Zooma in på området där matchen utspelade sig
+  const all = ids.flatMap(id => [m.p[id].ld, m.p[id].dl, ...(m.p[id].kl || [])]).filter(Boolean);
+  let x0 = 0, y0 = 0, ext = size;
+  if (all.length) {
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    ext = Math.min(size, Math.max(maxX - minX, maxY - minY, size * 0.15) * 1.5);
+    x0 = Math.max(0, Math.min(size - ext, (minX + maxX) / 2 - ext / 2));
+    y0 = Math.max(0, Math.min(size - ext, (minY + maxY) / 2 - ext / 2));
+  }
+  mapImage(m.map, im => {
+    if (im) {
+      const k = im.naturalWidth / size;
+      ctx.drawImage(im, x0 * k, y0 * k, ext * k, ext * k, 0, 0, W, W);
+      ctx.fillStyle = "rgba(20,26,22,0.3)"; ctx.fillRect(0, 0, W, W);
+    }
+    const xy = p => [(p[0] - x0) / ext * W, (p[1] - y0) / ext * W];
+    for (const id of ids) {
+      const s = m.p[id], c = colorOf(id);
+      for (const k of s.kl || []) { const [x, y] = xy(k); ctx.beginPath(); ctx.arc(x, y, 2.5 * dpr, 0, 7); ctx.fillStyle = "#ECE5D0"; ctx.fill(); }
+      if (s.ld && s.dl) {
+        const [a, b] = xy(s.ld), [x, y] = xy(s.dl);
+        ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.strokeStyle = c; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+      if (s.ld) { const [x, y] = xy(s.ld); ctx.beginPath(); ctx.arc(x, y, 6 * dpr, 0, 7); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 1.5 * dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke(); }
+      if (s.dl) {
+        const [x, y] = xy(s.dl), r = 6 * dpr;
+        ctx.lineWidth = 4.5 * dpr; ctx.strokeStyle = "#1a1f1b";
+        ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r); ctx.stroke();
+        ctx.lineWidth = 2.5 * dpr; ctx.strokeStyle = c; ctx.stroke();
+      }
+    }
+  });
+}
+
 function renderNemesis(list) {
   const ours = new Set(data.players.map(p => p.name));
   const tiles = list.map(r => {
@@ -948,6 +1072,7 @@ function render() {
   renderGuns(list);
   renderMaps(list);
   renderGeo(list);
+  renderLog();
   renderNemesis(list);
   renderModes();
   renderCard(list);
@@ -1025,6 +1150,8 @@ document.getElementById("geoPlayer").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.geoPlayer = b.dataset.id; renderGeo(rows());
 });
+document.getElementById("log").addEventListener("toggle", e => { if (e.target.open) fillMatch(e.target); }, true);
+document.getElementById("logMore").addEventListener("click", () => { state.logN += 15; renderLog(); });
 let geoResize;
 addEventListener("resize", () => { clearTimeout(geoResize); geoResize = setTimeout(() => data && renderGeo(rows()), 200); });
 document.getElementById("gunPicker").addEventListener("click", e => {
