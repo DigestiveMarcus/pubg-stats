@@ -12,7 +12,7 @@ const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
 const MAX_NEW_MATCHES = 120;  // per körning, så första körningen inte tar evigheter
-const SCHEMA = 3;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const SCHEMA = 4;             // höj när nya fält läggs till, så sparade matcher hämtas om
 const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
 
@@ -78,13 +78,17 @@ async function statsFor(seasonId, ids) {
 }
 
 // Läser matchloggen: knockar, kills, bot-kills, kills och skada per vapen, vem som dödade våra spelare,
-// och hur många lagkompisar de själva har knockat eller dödat.
+// hur många lagkompisar de själva har knockat eller dödat, samt var de landade, dog och tog kills.
 function parseTelemetry(tel, ours) {
   const r = {};
-  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {} });
+  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [] });
+  const pos = l => l && l.x > 0 && l.y > 0 ? [Math.round(l.x / 100), Math.round(l.y / 100)] : null; // meter
   const sameTeam = (a, b) => a && b && a.teamId != null && a.teamId === b.teamId;
   for (const e of tel) {
-    if (e._T === "LogPlayerTakeDamage") {
+    if (e._T === "LogParachuteLanding") {
+      const c = e.character;
+      if (ours.has(c?.accountId) && !get(c.accountId).ld) get(c.accountId).ld = pos(c.location);
+    } else if (e._T === "LogPlayerTakeDamage") {
       const a = e.attacker, v = e.victim;
       if (!a || !ours.has(a.accountId) || !v || v.accountId === a.accountId || v.teamId === a.teamId || !(e.damage > 0)) continue;
       const weapon = e.damageCauserName || "Okänt";
@@ -98,11 +102,13 @@ function parseTelemetry(tel, ours) {
       }
     } else if (e._T === "LogPlayerKillV2") {
       const k = e.killer?.accountId, v = e.victim?.accountId;
+      if (ours.has(v)) get(v).dl = pos(e.victim.location);
       if (ours.has(v) && k && k !== v) get(v).kb = { n: e.killer.name, bot: k.startsWith("ai.") };
       if (!ours.has(k) || v === k) continue;
       const me = get(k);
       if (sameTeam(e.killer, e.victim)) { me.tkl++; me.tkv[e.victim.name] = (me.tkv[e.victim.name] || 0) + 1; continue; }
       me.tk++;
+      const kp = pos(e.victim?.location); if (kp) me.kl.push(kp);
       if (String(v).startsWith("ai.")) me.bk++;
       const weapon = e.killerDamageInfo?.damageCauserName;
       if (weapon) me.w[weapon] = (me.w[weapon] || 0) + 1;
@@ -153,12 +159,12 @@ async function updateHistory(players) {
       const p = {};
       for (const x of m.included) {
         if (x.type !== "participant" || !ours.has(x.attributes.stats.playerId)) continue;
-        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {} };
+        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [] };
         p[s.playerId] = {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
           hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
           lk: Math.round(s.longestKill), dead: s.deathType === "alive" ? 0 : 1,
-          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv,
+          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv, ld: t.ld, dl: t.dl, kl: t.kl,
         };
       }
       const isNew = !hist.matches[id];
