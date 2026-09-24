@@ -133,7 +133,7 @@
 
   <section class="shame">
     <h2>Skamvrån</h2>
-    <p class="note" id="shameNote">Flest dödsfall och flest gånger knockad.</p>
+    <p class="note" id="shameNote">Flest dödsfall, flest gånger knockad och störst andel kills på bottar.</p>
     <div class="duels" id="shameGrid"></div>
   </section>
 
@@ -187,11 +187,12 @@ const M = {
   deaths:  { label: "Dödsfall",          fmt: v => v },
   knocked: { label: "Gånger knockad",    fmt: v => v },
   knockedPm: { label: "Knockad/match",   fmt: v => v.toFixed(2) },
+  botPct:  { label: "Andel bot-kills",   fmt: pct(0) },
 };
 const RANK_KEYS = ["kd", "kda", "adr", "win", "top10", "hs", "long"];
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
 const SURVIVAL = ["win", "top10", "surv", "revives", "heals", "dist", "rounds"];
-const SHAME = ["deaths", "knocked", "knockedPm"];
+const SHAME = ["deaths", "knocked", "knockedPm", "botPct"];
 const TABLE = ["rounds", ...COMBAT.filter(k => k !== "kills"), "kills", ...SURVIVAL.filter(k => k !== "rounds"), ...SHAME];
 
 const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null };
@@ -232,6 +233,8 @@ function derive(s, h) {
     dist: (s.walkDistance + s.rideDistance + s.swimDistance) / r / 1000,
   };
   if (h.length) { v.knocked = h.reduce((a, m) => a + m.knocked, 0); v.knockedPm = v.knocked / h.length; }
+  const hb = h.filter(m => m.bk != null), tk = hb.reduce((a, m) => a + m.tk, 0);
+  if (tk) { v.botKills = hb.reduce((a, m) => a + m.bk, 0); v.botPct = v.botKills / tk; }
   return v;
 }
 
@@ -327,7 +330,7 @@ function renderCard(list) {
   const card = document.getElementById("card");
   if (!r?.v) { card.innerHTML = '<p class="msg">Inga matcher i det här läget.</p>'; destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
-  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked"];
+  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct"];
   card.innerHTML = `<dl>${keys.filter(k => has(r, k)).map(k => {
     const pos = ranks(played, k)(r);
     return `<dt>${M[k].label}</dt><dd>${M[k].fmt(r.v[k])}</dd><dd class="r${pos === 1 ? " top" : ""}">#${pos}</dd>`;
@@ -369,8 +372,8 @@ function render() {
   document.getElementById("shameGrid").innerHTML = SHAME.map(k => duel(list, k)).join("");
   const since = Object.values(history.matches).map(m => m.t).sort()[0];
   document.getElementById("shameNote").textContent = since
-    ? `Dödsfall gäller vald period. Knockad räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}.`
-    : "Dödsfall gäller vald period. Knockad fylls på när matchhistoriken har hämtats.";
+    ? `Dödsfall gäller vald period. Knockad och bot-kills räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}.`
+    : "Dödsfall gäller vald period. Knockad och bot-kills fylls på när matchhistoriken har hämtats.";
   renderForm(list);
   renderModes();
   renderCard(list);
