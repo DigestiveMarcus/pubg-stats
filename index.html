@@ -1072,4 +1072,14 @@ Promise.all([
   fetch("stats.json", { cache: "no-store" }).then(r => { if (!r.ok) throw 0; return r.json(); }),
   fetch("history.json", { cache: "no-store" }).then(r => r.ok ? r.json() : { matches: {} }).catch(() => ({ matches: {} })),
 ]).then(([d, h]) => {
-  data 
+  data = d; history = h;
+  const t = new Date(d.updated).toLocaleString("sv-SE", { dateStyle: "medium", timeStyle: "short" });
+  document.getElementById("foot").textContent = `Uppdaterad ${t}. Data från PUBG:s officiella API, Steam PC. Endast vanliga matcher, inte ranked eller event.`;
+  render();
+}).catch(() => {
+  document.getElementById("rank").innerHTML =
+    '<li class="msg">stats.json finns inte än. Gå till fliken Actions på GitHub och kör "Uppdatera statistik" en gång.</li>';
+});
+</script>
+</body>
+</html>
