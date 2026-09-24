@@ -493,11 +493,11 @@ function derive(s, h) {
   const ht = h.filter(m => m.tkn != null);
   if (ht.length) {
     v.teamKnocks = sum(ht, m => m.tkn);
-    v.betray = v.teamKnocks + sum(ht, m => m.tkl);
-    v.betrayKills = sum(ht, m => m.tkl);
     v.betrayVictims = {};
     for (const m of ht) for (const [n, c] of Object.entries(m.tkv || {})) v.betrayVictims[n] = (v.betrayVictims[n] || 0) + c;
   }
+  // Dödade lagkompisar från säsongsstatistiken (samma som i Skamvrån), knockade från matchhistoriken
+  v.betray = v.teamKills + (v.teamKnocks || 0);
   if (h.length) { v.knocked = sum(h, m => m.knocked); v.knockedPm = v.knocked / h.length; }
   const hb = h.filter(m => m.bk != null), tk = sum(hb, m => m.tk);
   if (tk) { v.botKills = sum(hb, m => m.bk); v.botPct = v.botKills / tk; }
@@ -554,13 +554,19 @@ function renderAwards(list) {
   const tiles = AWARDS.map(a => {
     const c = list.filter(r => has(r, a.key)).sort((x, y) => y.v[a.key] - x.v[a.key]);
     if (!c.length) return "";
-    const tied = c.filter(r => r.v[a.key] === c[0].v[a.key]);
+    const same = r => r.v[a.key] === c[0].v[a.key] && (a.key !== "betray" || (r.v.teamKills === c[0].v.teamKills && r.v.teamKnocks === c[0].v.teamKnocks));
+    const tied = c.filter(same);
     const top = tied.length > 2 ? `Delad mellan ${tied.length} spelare` : tied.map(r => esc(r.name)).join(" & ");
     let val = `${M[a.key].fmt(c[0].v[a.key])} ${a.what}`;
     if (a.key === "betray") {
       if (!c[0].v.betray) return "";
-      const x = c[0].v, fav = Object.entries(x.betrayVictims).sort((p, q) => q[1] - p[1])[0];
-      val = `${x.teamKnocks} knockade och ${x.betrayKills} dödade lagkompisar${fav && tied.length === 1 ? `, oftast ${esc(fav[0])}` : ""}`;
+      const x = c[0].v, fav = tied.length === 1 && Object.entries(x.betrayVictims || {}).sort((p, q) => q[1] - p[1])[0];
+      const per = state.scope === "season" ? "denna säsong" : "totalt";
+      const tie = tied.length > 1 ? "Var och en har " : "";
+      val = `${tie}${x.teamKills} dödade lagkompisar ${per}` +
+        (x.teamKnocks != null ? ` och ${x.teamKnocks} knockade sedan ${fmtDate(Object.values(history.matches).map(m => m.t).sort()[0])}` : "") +
+        (fav ? `. Oftast drabbad: ${esc(fav[0])}` : "");
+      if (!val.endsWith(".")) val += ".";
     }
     return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
       <span class="t-who">${top}</span><span class="t-val">${val}</span></div>`;
@@ -1066,14 +1072,4 @@ Promise.all([
   fetch("stats.json", { cache: "no-store" }).then(r => { if (!r.ok) throw 0; return r.json(); }),
   fetch("history.json", { cache: "no-store" }).then(r => r.ok ? r.json() : { matches: {} }).catch(() => ({ matches: {} })),
 ]).then(([d, h]) => {
-  data = d; history = h;
-  const t = new Date(d.updated).toLocaleString("sv-SE", { dateStyle: "medium", timeStyle: "short" });
-  document.getElementById("foot").textContent = `Uppdaterad ${t}. Data från PUBG:s officiella API, Steam PC. Endast vanliga matcher, inte ranked eller event.`;
-  render();
-}).catch(() => {
-  document.getElementById("rank").innerHTML =
-    '<li class="msg">stats.json finns inte än. Gå till fliken Actions på GitHub och kör "Uppdatera statistik" en gång.</li>';
-});
-</script>
-</body>
-</html>
+  data 
