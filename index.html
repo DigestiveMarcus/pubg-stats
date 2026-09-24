@@ -30,7 +30,19 @@
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 7.5rem; }
   body { margin: 0; background: var(--terrain); color: var(--sand); font: 400 1rem/1.5 var(--body); font-variant-numeric: tabular-nums; }
-  main { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  .layout { display: grid; grid-template-columns: minmax(0, 64rem); justify-content: center; }
+  main { min-width: 0; padding: 2.5rem 1.25rem 4rem; }
+  .side { display: none; }
+  @media (min-width: 80rem) {
+    .layout { grid-template-columns: 12rem minmax(0, 64rem); column-gap: 2rem; }
+    .side { display: block; }
+    #topNav { display: none; }
+  }
+  .side { padding-top: 12.75rem; }
+  .side nav { display: block; position: sticky; top: 5.5rem; max-height: calc(100vh - 6.5rem); overflow-y: auto; }
+  .side a { display: block; padding: 0.3rem 0 0.3rem 0.9rem; border-left: 2px solid var(--line); color: var(--dust); text-decoration: none; font-weight: 500; }
+  .side a:hover { color: var(--sand); }
+  .side a[aria-current="true"] { color: var(--sand); border-left-color: var(--pan); }
   a { color: inherit; }
 
   header { display: flex; align-items: center; gap: clamp(1rem, 3vw, 1.75rem); }
@@ -48,6 +60,7 @@
   nav::-webkit-scrollbar { display: none; }
   nav a { color: var(--dust); text-decoration: none; white-space: nowrap; font-weight: 500; font-size: 0.92rem; }
   nav a:hover { color: var(--sand); }
+  #topNav a[aria-current="true"] { color: var(--sand); }
   button:focus-visible, th:focus-visible, a:focus-visible, select:focus-visible { outline: 2px solid var(--pan); outline-offset: 2px; }
 
   section { margin-top: 3.5rem; }
@@ -115,6 +128,13 @@
   .guns li:first-child .bar i { background: var(--pan); }
   .guns .pc { text-align: right; color: var(--dust); }
 
+  /* Vapenstatistik */
+  .gunwrap { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.5rem 2rem; }
+  .gunwrap > *, .gunwrap .chart { min-width: 0; margin-top: 0; }
+  .gunwrap .tall { height: auto; min-height: 30rem; }
+  h3.sub { font: 700 1.6rem/1 var(--display); margin: 2.5rem 0 1rem; }
+  @media (max-width: 50rem) { .gunwrap { grid-template-columns: 1fr; } .gunwrap .tall { min-height: 24rem; } }
+
   /* Tabeller */
   .scroll { overflow-x: auto; border-top: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; }
@@ -152,6 +172,8 @@
 </style>
 </head>
 <body>
+<div class="layout">
+<aside class="side"><nav id="sideNav" aria-label="Innehåll"></nav></aside>
 <main>
   <header>
     <img src="icon-512.png" alt="" width="512" height="512">
@@ -178,16 +200,10 @@
         <button data-v="tpp" aria-pressed="false">TPP</button>
       </div>
     </div>
-    <nav aria-label="Hoppa till">
-      <a href="#s-rank">Ranking</a><a href="#s-awards">Utmärkelser</a><a href="#s-week">Veckan</a>
-      <a href="#s-vs">Duell</a><a href="#s-combat">Strid</a><a href="#s-surv">Överlevnad</a>
-      <a href="#s-shame">Skamvrån</a><a href="#s-form">Form</a><a href="#s-trend">Utveckling</a>
-      <a href="#s-duos">Duos</a><a href="#s-guns">Vapen</a><a href="#s-maps">Kartor</a>
-      <a href="#s-nemesis">Ärkefiender</a><a href="#s-modes">Per läge</a><a href="#s-card">Spelarkort</a><a href="#s-all">Alla siffror</a>
-    </nav>
+    <nav id="topNav" aria-label="Innehåll"></nav>
   </div>
 
-  <section id="s-rank">
+  <section id="s-rank" data-nav="Ranking">
     <h2>Totalranking</h2>
     <p class="note">Snittplacering i sju kategorier: K/D, KDA, skada per match, vinster, topp 10, headshots och längsta kill.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
@@ -198,7 +214,7 @@
     <div class="tiles" id="awards"></div>
   </section>
 
-  <section id="s-week">
+  <section id="s-week" data-nav="Veckan">
     <h2>Veckans höjdpunkter</h2>
     <p class="note">De senaste sju dagarna, alla lägen.</p>
     <div class="tiles" id="week"></div>
@@ -226,14 +242,14 @@
     <div class="duels" id="shameGrid"></div>
   </section>
 
-  <section id="s-form">
+  <section id="s-form" data-nav="Formen">
     <h2>Senaste formen</h2>
     <p class="note">De 10 senaste matcherna jämfört med säsongssnittet.</p>
     <div class="scroll"><table id="form"></table></div>
     <div class="chart"><canvas id="formChart" aria-label="Skada per match, senaste 10 matcherna"></canvas></div>
   </section>
 
-  <section id="s-trend">
+  <section id="s-trend" data-nav="Utveckling">
     <h2>Utveckling över tid</h2>
     <p class="note">Per vecka, från matchhistoriken. Blir mer intressant ju längre sidan har varit igång.</p>
     <div class="charts2">
@@ -242,19 +258,28 @@
     </div>
   </section>
 
-  <section id="s-duos">
+  <section id="s-duos" data-nav="Duos">
     <h2>Bästa duon</h2>
     <p class="note">Hur det går när två i gänget spelar i samma lag. Sorterat på snittplacering, minst 3 matcher ihop.</p>
     <div class="scroll"><table id="duos"></table></div>
   </section>
 
   <section id="s-guns">
-    <h2>Favoritvapen</h2>
-    <p class="note" id="gunNote">Andel av alla kills per vapen.</p>
+    <h2>Vapen</h2>
+    <p class="note" id="gunNote">Kills och skada per vapen, från matchhistoriken.</p>
+    <div class="picker" id="gunPicker"></div>
+    <div class="gunwrap">
+      <div>
+        <div class="chart"><canvas id="gunKills" aria-label="Flest kills per vapen"></canvas></div>
+        <div class="chart"><canvas id="gunDmg" aria-label="Mest skada per vapen"></canvas></div>
+      </div>
+      <div class="chart tall"><canvas id="gunType" aria-label="Skada per vapentyp"></canvas></div>
+    </div>
+    <h3 class="sub">Favoritvapen per spelare</h3>
     <div class="guns" id="guns"></div>
   </section>
 
-  <section id="s-maps">
+  <section id="s-maps" data-nav="Kartor">
     <h2>Bästa karta</h2>
     <p class="note">Snittplacering och skada per match. Bästa kartan per spelare är markerad (minst 3 matcher).</p>
     <div class="scroll"><table id="maps"></table></div>
@@ -286,6 +311,7 @@
 
   <footer id="foot"></footer>
 </main>
+</div>
 
 <script>
 const COLORS = ["#F2A900", "#ECE5D0", "#7FB3C8", "#D0673F", "#9BBF7A", "#B98FD6", "#E58FA8", "#6FC3B2", "#C8B06B", "#8FA0E5"];
@@ -309,8 +335,22 @@ const WEAPONS = {
   WeapDesertEagle_C: "Deagle", WeapPanzerFaust100M1_C: "Panzerfaust", WeapMortar_C: "Granatkastare",
   ProjGrenade_C: "Granat", ProjMolotov_C: "Molotov", ProjStickyGrenade_C: "Klistergranat", ProjC4_C: "C4",
   WeapPan_C: "Stekpanna", WeapMachete_C: "Machete", WeapCrowbar_C: "Kofot", WeapSickle_C: "Skära",
-  PlayerFemale_A_C: "Nävar", PlayerMale_A_C: "Nävar",
+  PlayerFemale_A_C: "Nävar", PlayerMale_A_C: "Nävar", WeapFNFal_C: "SLR", WeapL6_C: "Lynx AMR",
+  PanzerFaust100M_Projectile_C: "Panzerfaust", WeapMadsQBU88_C: "QBU", WeapDuncansHK416_C: "M416",
 };
+const TYPES = {
+  "Automatkarbiner": ["M416", "AKM", "Beryl M762", "SCAR-L", "M16A4", "G36C", "QBZ", "AUG", "Groza", "ACE32", "K2", "FAMAS", "Mk47 Mutant"],
+  "Kulsprutepistoler": ["UMP45", "Vector", "Micro UZI", "Tommy Gun", "PP-19 Bizon", "MP5K", "P90", "JS9"],
+  "Prickskyttegevär": ["Kar98k", "M24", "AWM", "Mosin Nagant", "Win94", "Lynx AMR"],
+  "DMR": ["Mini 14", "SKS", "SLR", "Mk14", "QBU", "Dragunov", "Mk12", "VSS"],
+  "Kulsprutor": ["M249", "DP-28", "MG3", "RPD"],
+  "Hagelgevär": ["S12K", "DBS", "S686", "S1897", "O12", "Sawed-off"],
+  "Pistoler": ["P1911", "P18C", "P92", "R1895", "R45", "Deagle"],
+  "Kastvapen": ["Granat", "Molotov", "Klistergranat", "C4"],
+};
+const TYPE_OF = Object.fromEntries(Object.entries(TYPES).flatMap(([t, ws]) => ws.map(w => [w, t])));
+const TYPE_COLORS = ["#F2A900", "#7FB3C8", "#D0673F", "#9BBF7A", "#B98FD6", "#E58FA8", "#C8B06B", "#6FC3B2", "#A9A58F"];
+const kfmt = v => v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "").replace(".", ",") + " k" : String(Math.round(v));
 const VEHICLE = /Dacia|Uaz|Buggy|Motorbike|Motorglider|Boat|Mirado|PickupTruck|Pony|BRDM|Scooter|Snowbike|Snowmobile|TukTuk|Rony|Niva|Blanc|Pillar|Dirtbike|Bike|AquaRail|Van|Food_Truck|Porter|Kiga/i;
 const weaponName = w => WEAPONS[w] || (VEHICLE.test(w) ? "Fordon" : String(w).replace(/^(Weap|Proj|BP_)/, "").replace(/_C$/, "").replace(/_/g, " "));
 
@@ -337,14 +377,17 @@ const M = {
   knockedPm: { label: "Knockad/match",   fmt: v => v.toFixed(2) },
   botPct:  { label: "Andel bot-kills",   fmt: pct(0) },
   firstPct: { label: "Dör först",        fmt: pct(0) },
+  teamKills: { label: "Dödat lagkompisar", fmt: v => v },
+  teamKnocks: { label: "Knockat lagkompisar", fmt: v => v },
+  betray:  { label: "Förräderier",       fmt: v => v },
 };
 const RANK_KEYS = ["kd", "kda", "adr", "win", "top10", "hs", "long"];
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
 const SURVIVAL = ["win", "top10", "surv", "revives", "heals", "dist", "rounds"];
-const SHAME = ["deaths", "knocked", "knockedPm", "botPct", "firstPct"];
+const SHAME = ["deaths", "knocked", "knockedPm", "botPct", "firstPct", "teamKills", "teamKnocks"];
 const TABLE = ["rounds", ...COMBAT.filter(k => k !== "kills"), "kills", ...SURVIVAL.filter(k => k !== "rounds"), ...SHAME];
-const VS_KEYS = ["kd", "kda", "adr", "kpm", "hs", "long", "win", "top10", "surv", "revives", "knockedPm", "botPct", "firstPct"];
-const LOWER_IS_BETTER = new Set(["deaths", "knocked", "knockedPm", "botPct", "firstPct"]);
+const VS_KEYS = ["kd", "kda", "adr", "kpm", "hs", "long", "win", "top10", "surv", "revives", "knockedPm", "botPct", "firstPct", "teamKills"];
+const LOWER_IS_BETTER = new Set(["deaths", "knocked", "knockedPm", "botPct", "firstPct", "teamKills", "teamKnocks"]);
 const AWARDS = [
   { icon: "🎯", name: "Prickskytten", key: "long", what: "längsta kill" },
   { icon: "💥", name: "Skademaskinen", key: "adr", what: "skada per match" },
@@ -355,9 +398,10 @@ const AWARDS = [
   { icon: "🤖", name: "Botjägaren", key: "botPct", what: "av alla kills på bottar", shame: true },
   { icon: "🪦", name: "Först ut", key: "firstPct", what: "av matcherna först att dö", shame: true },
   { icon: "🧲", name: "Kulmagneten", key: "knockedPm", what: "knockad per match", shame: true },
+  { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null };
+const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all" };
 let data, history = { matches: {} };
 const charts = {};
 const nameOf = id => data.players.find(p => p.id === id)?.name ?? "?";
@@ -410,7 +454,16 @@ function derive(s, h) {
     win: s.wins / r, top10: s.top10s / r, surv: s.timeSurvived / r,
     revives: s.revives, heals: (s.heals + s.boosts) / r,
     dist: (s.walkDistance + s.rideDistance + s.swimDistance) / r / 1000,
+    teamKills: s.teamKills ?? 0,
   };
+  const ht = h.filter(m => m.tkn != null);
+  if (ht.length) {
+    v.teamKnocks = sum(ht, m => m.tkn);
+    v.betray = v.teamKnocks + sum(ht, m => m.tkl);
+    v.betrayKills = sum(ht, m => m.tkl);
+    v.betrayVictims = {};
+    for (const m of ht) for (const [n, c] of Object.entries(m.tkv || {})) v.betrayVictims[n] = (v.betrayVictims[n] || 0) + c;
+  }
   if (h.length) { v.knocked = sum(h, m => m.knocked); v.knockedPm = v.knocked / h.length; }
   const hb = h.filter(m => m.bk != null), tk = sum(hb, m => m.tk);
   if (tk) { v.botKills = sum(hb, m => m.bk); v.botPct = v.botKills / tk; }
@@ -469,8 +522,14 @@ function renderAwards(list) {
     if (!c.length) return "";
     const tied = c.filter(r => r.v[a.key] === c[0].v[a.key]);
     const top = tied.length > 2 ? `Delad mellan ${tied.length} spelare` : tied.map(r => esc(r.name)).join(" & ");
+    let val = `${M[a.key].fmt(c[0].v[a.key])} ${a.what}`;
+    if (a.key === "betray") {
+      if (!c[0].v.betray) return "";
+      const x = c[0].v, fav = Object.entries(x.betrayVictims).sort((p, q) => q[1] - p[1])[0];
+      val = `${x.teamKnocks} knockade och ${x.betrayKills} dödade lagkompisar${fav && tied.length === 1 ? `, oftast ${esc(fav[0])}` : ""}`;
+    }
     return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
-      <span class="t-who">${top}</span><span class="t-val">${M[a.key].fmt(c[0].v[a.key])} ${a.what}</span></div>`;
+      <span class="t-who">${top}</span><span class="t-val">${val}</span></div>`;
   }).join("");
   document.getElementById("awards").innerHTML = tiles || empty("Inga utmärkelser i det här läget.");
 }
@@ -597,22 +656,61 @@ function renderDuos() {
     }).join("") + "</tbody>";
 }
 
+function weaponTotals(rs) {
+  const kills = {}, dmg = {};
+  for (const r of rs) for (const m of r.h) {
+    for (const [raw, n] of Object.entries(m.w || {})) { const nm = weaponName(raw); kills[nm] = (kills[nm] || 0) + n; }
+    for (const [raw, n] of Object.entries(m.wd || {})) { const nm = weaponName(raw); dmg[nm] = (dmg[nm] || 0) + n; }
+  }
+  return { kills, dmg };
+}
+
 function renderGuns(list) {
-  const total = {};
+  if (state.gun !== "all" && !list.some(r => r.id === state.gun)) state.gun = "all";
+  document.getElementById("gunPicker").innerHTML =
+    `<button data-id="all" aria-pressed="${state.gun === "all"}">Hela gänget</button>` +
+    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.gun}">${esc(r.name)}</button>`).join("");
+
+  const sel = state.gun === "all" ? list : list.filter(r => r.id === state.gun);
+  const { kills, dmg } = weaponTotals(sel);
+  const top = (obj, n) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n);
+  const n = innerWidth < 520 ? 8 : 12, tk = top(kills, n), td = top(dmg, n);
+  const hasDmg = td.length > 0;
+  const bar = (rows, title, emptyTitle) => ({
+    type: "bar",
+    data: { labels: rows.map(x => x[0]), datasets: [{ data: rows.map(x => x[1]), backgroundColor: "#F2A900", borderRadius: 2, maxBarThickness: 38 }] },
+    options: { plugins: { title: { display: true, text: rows.length ? title : emptyTitle, align: "start", font: { size: 15 } }, legend: { display: false }, valueLabels: true },
+      layout: { padding: { top: 18 } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 40, autoSkip: false } }, y: { beginAtZero: true, ticks: { callback: kfmt } } } },
+  });
+  draw("gunKills", bar(tk, "Flest kills per vapen", "Flest kills per vapen (ingen historik än)"));
+  draw("gunDmg", bar(td, "Mest skada per vapen", "Mest skada per vapen (fylls på efter nästa uppdatering)"));
+
+  const types = {};
+  for (const [w, d] of Object.entries(dmg)) { const t = TYPE_OF[w] || "Övrigt"; types[t] = (types[t] || 0) + d; }
+  const tt = Object.entries(types).sort((a, b) => b[1] - a[1]);
+  const total = tt.reduce((a, x) => a + x[1], 0);
+  draw("gunType", {
+    type: "doughnut",
+    data: { labels: tt.map(x => x[0]), datasets: [{ data: tt.map(x => x[1]), backgroundColor: tt.map((_, i) => TYPE_COLORS[i % TYPE_COLORS.length]), borderColor: "#2B332C", borderWidth: 2 }] },
+    options: { cutout: "38%", plugins: { title: { display: true, text: hasDmg ? "Skada per vapentyp" : "Skada per vapentyp (fylls på efter nästa uppdatering)", font: { size: 15 } },
+      legend: { position: "top", labels: { boxWidth: 14 } }, valueLabels: true, centerText: hasDmg ? [kfmt(total), "skada"] : null,
+      tooltip: { callbacks: { label: c => `${c.label}: ${kfmt(c.raw)} (${Math.round(c.raw / total * 100)}%)` } } } },
+  });
+
+  const favKills = tk[0], favDmg = td[0];
+  document.getElementById("gunNote").textContent = favKills
+    ? `${state.gun === "all" ? "Gängets" : nameOf(state.gun).replace(/([^sxz])$/i, "$1s")} favorit är ${favKills[0]} med ${favKills[1]} kills${favDmg ? `, och mest skada gör ${favDmg[0] === favKills[0] ? "den" : favDmg[0]} med ${kfmt(favDmg[1])}` : ""}.`
+    : "Kills och skada per vapen, från matchhistoriken.";
+
   const cards = list.map(r => {
-    const w = {};
-    for (const m of r.h) for (const [raw, n] of Object.entries(m.w || {})) { const nm = weaponName(raw); w[nm] = (w[nm] || 0) + n; total[nm] = (total[nm] || 0) + n; }
+    const w = weaponTotals([r]).kills;
     const all = Object.values(w).reduce((a, b) => a + b, 0);
     if (!all) return "";
-    const top = Object.entries(w).sort((a, b) => b[1] - a[1]).slice(0, 4);
-    return `<div><h3>${esc(r.name)}</h3><ol>${top.map(([nm, n]) =>
-      `<li><span>${esc(nm)} <small style="color:var(--dust)">${n} kills</small></span><span class="pc">${Math.round(n / all * 100)}%</span><span class="bar"><i style="width:${n / top[0][1] * 100}%"></i></span></li>`).join("")}</ol></div>`;
+    const t4 = top(w, 4);
+    return `<div><h3>${esc(r.name)}</h3><ol>${t4.map(([nm, n]) =>
+      `<li><span>${esc(nm)} <small style="color:var(--dust)">${n} kills</small></span><span class="pc">${Math.round(n / all * 100)}%</span><span class="bar"><i style="width:${n / t4[0][1] * 100}%"></i></span></li>`).join("")}</ol></div>`;
   }).join("");
   document.getElementById("guns").innerHTML = cards || empty(NO_HIST);
-  const fav = Object.entries(total).sort((a, b) => b[1] - a[1])[0];
-  document.getElementById("gunNote").textContent = fav
-    ? `Andel av alla kills per vapen. Gängets favorit är ${fav[0]} med ${fav[1]} kills.`
-    : "Andel av alla kills per vapen.";
 }
 
 function renderMaps(list) {
@@ -671,7 +769,7 @@ function renderCard(list) {
   const r = list.find(x => x.id === state.player), card = document.getElementById("card");
   if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
-  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct"];
+  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct", "teamKills", "teamKnocks"];
   card.innerHTML = `<dl>${keys.filter(k => has(r, k)).map(k => {
     const pos = ranks(played, k)(r);
     return `<dt>${M[k].label}</dt><dd>${M[k].fmt(r.v[k])}</dd><dd class="r${pos === 1 ? " top" : ""}">#${pos}</dd>`;
@@ -713,7 +811,7 @@ function render() {
   document.getElementById("shameGrid").innerHTML = SHAME.map(k => duel(list, k)).join("");
   const since = Object.values(history.matches).map(m => m.t).sort()[0];
   document.getElementById("shameNote").textContent = since
-    ? `Dödsfall gäller vald period. Övriga räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}. Dör först = andel av matcherna med minst två från gänget där man dog först.`
+    ? `Dödsfall gäller vald period. Övriga räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}. Dör först = andel av matcherna med minst två från gänget där man dog först. Dödat lagkompisar gäller vald period, knockat lagkompisar räknas från matchhistoriken.`
     : "Dödsfall gäller vald period. Övriga fylls på när matchhistoriken har hämtats.";
   renderForm(list);
   renderTrend(list);
@@ -736,6 +834,34 @@ function draw(id, cfg) {
   charts[id] = new Chart(el, cfg);
 }
 if (window.Chart) {
+  Chart.register({
+    id: "valueLabels",
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const po = chart.config.options?.plugins || {};
+      if (po.valueLabels === true) {
+        const meta = chart.getDatasetMeta(0), data = chart.data.datasets[0]?.data || [];
+        ctx.save(); ctx.font = "600 12px Barlow, system-ui, sans-serif"; ctx.textAlign = "center";
+        if (chart.config.type === "bar") {
+          ctx.fillStyle = "#ECE5D0"; ctx.textBaseline = "bottom";
+          meta.data.forEach((el, i) => ctx.fillText(kfmt(data[i]), el.x, el.y - 4));
+        } else if (chart.config.type === "doughnut") {
+          const total = data.reduce((a, b) => a + b, 0);
+          ctx.fillStyle = "#2B332C"; ctx.textBaseline = "middle";
+          meta.data.forEach((el, i) => { if (data[i] / total < 0.06) return; const p = el.tooltipPosition(); ctx.fillText(kfmt(data[i]), p.x, p.y); });
+        }
+        ctx.restore();
+      }
+      const center = po.centerText;
+      if (center && chart.config.type === "doughnut") {
+        const m = chart.getDatasetMeta(0).data[0]; if (!m) return;
+        ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ECE5D0"; ctx.font = "900 30px 'Big Shoulders Display', Impact, sans-serif"; ctx.fillText(center[0], m.x, m.y - 8);
+        ctx.fillStyle = "#A9A58F"; ctx.font = "500 13px Barlow, system-ui, sans-serif"; ctx.fillText(center[1], m.x, m.y + 16);
+        ctx.restore();
+      }
+    },
+  });
   Chart.defaults.color = "#A9A58F";
   Chart.defaults.borderColor = "#4A5549";
   Chart.defaults.font.family = "Barlow, system-ui, sans-serif";
@@ -755,6 +881,30 @@ document.getElementById("picker").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.player = b.dataset.id; renderCard(rows());
 });
+document.getElementById("gunPicker").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.gun = b.dataset.id; renderGuns(rows());
+});
+
+// ---- Meny ----
+(function buildNav() {
+  const secs = [...document.querySelectorAll("main section[id]")];
+  const links = secs.map(s => `<a href="#${s.id}">${esc(s.dataset.nav || s.querySelector("h2").textContent)}</a>`).join("");
+  document.getElementById("sideNav").innerHTML = links;
+  document.getElementById("topNav").innerHTML = links;
+  const all = document.querySelectorAll("#sideNav a, #topNav a");
+  const top = document.getElementById("topNav");
+  const mark = id => {
+    all.forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + id));
+    const t = top.querySelector(`a[href="#${id}"]`);
+    if (t && top.offsetParent) top.scrollTo({ left: t.offsetLeft - top.clientWidth / 2 + t.offsetWidth / 2, behavior: "smooth" });
+  };
+  const pad = () => document.documentElement.style.scrollPaddingTop = document.querySelector(".bar-top").offsetHeight + 16 + "px";
+  pad(); addEventListener("resize", pad);
+  const obs = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && mark(e.target.id)), { rootMargin: "-35% 0px -60% 0px" });
+  secs.forEach(s => obs.observe(s));
+  mark(secs[0].id);
+})();
 document.getElementById("vsA").addEventListener("change", e => {
   if (e.target.value === state.b) state.b = state.a;
   state.a = e.target.value; renderVs(rows());
