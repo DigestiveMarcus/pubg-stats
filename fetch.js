@@ -1,17 +1,26 @@
 // Hämtar PUBG-statistik för spelarna i players.json.
 // stats.json   = säsongs- och totalstatistik (skrivs över varje gång)
-// history.json = en rad per match och spelare, byggs på över tid (form + antal gånger knockad)
-// Körs av GitHub Actions. Kräver miljövariabeln PUBG_API_KEY.
+// history.json = en rad per match och spelare, byggs på över tid
+// Körs av GitHub Actions. Kräver PUBG_API_KEY, och valfritt DISCORD_WEBHOOK för vinstaviseringar.
 const fs = require("fs");
 
 const KEY = process.env.PUBG_API_KEY;
+const WEBHOOK = process.env.DISCORD_WEBHOOK;
 if (!KEY) { console.error("PUBG_API_KEY saknas"); process.exit(1); }
 
 const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
-const MAX_NEW_MATCHES = 60; // per körning, så första körningen inte tar evigheter
+const MAX_NEW_MATCHES = 60;   // per körning, så första körningen inte tar evigheter
+const SCHEMA = 2;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
+
+const MAPS = {
+  Baltic_Main: "Erangel", Erangel_Main: "Erangel", Desert_Main: "Miramar", Savage_Main: "Sanhok",
+  DihorOtok_Main: "Vikendi", Tiger_Main: "Taego", Kiki_Main: "Deston", Neon_Main: "Rondo",
+  Summerland_Main: "Karakin", Chimera_Main: "Paramo", Heaven_Main: "Haven", Range_Main: "Camp Jackal",
+};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -68,16 +77,54 @@ async function statsFor(seasonId, ids) {
   return out;
 }
 
+// Läser matchloggen: knockar, kills, bot-kills, vapen och vem som dödade våra spelare.
+function parseTelemetry(tel, ours) {
+  const r = {};
+  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, kb: null });
+  for (const e of tel) {
+    if (e._T === "LogPlayerMakeGroggy") {
+      const v = e.victim?.accountId;
+      if (ours.has(v)) get(v).knocked++;
+    } else if (e._T === "LogPlayerKillV2") {
+      const k = e.killer?.accountId, v = e.victim?.accountId;
+      if (ours.has(v) && k && k !== v) get(v).kb = { n: e.killer.name, bot: k.startsWith("ai.") };
+      if (!ours.has(k) || v === k) continue;
+      const me = get(k);
+      me.tk++;
+      if (String(v).startsWith("ai.")) me.bk++;
+      const weapon = e.killerDamageInfo?.damageCauserName;
+      if (weapon) me.w[weapon] = (me.w[weapon] || 0) + 1;
+    }
+  }
+  return r;
+}
+
+async function notifyWin(match, players) {
+  if (!WEBHOOK) return;
+  const winners = Object.entries(match.p).filter(([, s]) => s.place === 1);
+  if (!winners.length) return;
+  const nameOf = id => players.find(p => p.id === id)?.name ?? id;
+  const who = winners.map(([id]) => nameOf(id));
+  const kills = winners.reduce((a, [, s]) => a + s.k, 0);
+  const list = who.length > 1 ? who.slice(0, -1).join(", ") + " och " + who.at(-1) : who[0];
+  const content = `🍗 **Winner winner chicken dinner!** ${list} vann på ${MAPS[match.map] ?? match.map} (${match.mode}) med ${kills} kills.`;
+  try {
+    await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+    console.log("Discord:", content);
+  } catch (e) { console.warn("Discord-avisering misslyckades:", e.message); }
+}
+
 async function updateHistory(players) {
   const hist = fs.existsSync("history.json")
     ? JSON.parse(fs.readFileSync("history.json", "utf8"))
     : { matches: {}, skip: {} };
+  hist.skip ??= {};
   const ours = new Set(players.map(p => p.id));
 
   const todo = [...new Set(players.flatMap(p => p.matchIds))]
-    // Nya matcher, plus redan sparade matcher som saknar bot-data (sparade innan den funktionen fanns)
-    .filter(id => !hist.skip[id] && (!hist.matches[id] || Object.values(hist.matches[id].p).some(x => x.bk == null)));
-  console.log(`${todo.length} nya matcher, hämtar max ${MAX_NEW_MATCHES}`);
+    .filter(id => !hist.skip[id] && hist.matches[id]?.v !== SCHEMA)
+    .sort((a, b) => (hist.matches[a] ? 1 : 0) - (hist.matches[b] ? 1 : 0)); // nya matcher först
+  console.log(`${todo.length} matcher att hämta, max ${MAX_NEW_MATCHES} per körning`);
 
   let added = 0;
   for (const id of todo.slice(0, MAX_NEW_MATCHES)) {
@@ -87,37 +134,26 @@ async function updateHistory(players) {
       // Bara vanliga matcher (inte ranked, custom, event, träning)
       if (a.matchType !== "official" || !MODES.includes(a.gameMode)) { hist.skip[id] = a.createdAt; continue; }
 
-      // Telemetrin innehåller varje händelse i matchen:
-      //  LogPlayerMakeGroggy -> victim = den som knockades
-      //  LogPlayerKillV2     -> killer = den som fick killen; bottar har accountId som börjar med "ai."
       const asset = m.included.find(x => x.type === "asset");
-      const tel = await free(asset.attributes.URL);
-      const knocked = {}, kills = {}, botKills = {};
-      for (const e of tel) {
-        if (e._T === "LogPlayerMakeGroggy") {
-          const v = e.victim?.accountId;
-          if (ours.has(v)) knocked[v] = (knocked[v] || 0) + 1;
-        } else if (e._T === "LogPlayerKillV2") {
-          const k = e.killer?.accountId;
-          if (!ours.has(k) || e.victim?.accountId === k) continue;
-          kills[k] = (kills[k] || 0) + 1;
-          if (String(e.victim?.accountId).startsWith("ai.")) botKills[k] = (botKills[k] || 0) + 1;
-        }
-      }
+      const tel = parseTelemetry(await free(asset.attributes.URL), ours);
 
       const p = {};
       for (const x of m.included) {
         if (x.type !== "participant" || !ours.has(x.attributes.stats.playerId)) continue;
-        const s = x.attributes.stats;
+        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, kb: null };
         p[s.playerId] = {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
           hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
-          dead: s.deathType === "alive" ? 0 : 1, knocked: knocked[s.playerId] || 0,
-          tk: kills[s.playerId] || 0, bk: botKills[s.playerId] || 0,
+          lk: Math.round(s.longestKill), dead: s.deathType === "alive" ? 0 : 1,
+          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, kb: t.kb,
         };
       }
-      if (!hist.matches[id]) added++;
-      hist.matches[id] = { t: a.createdAt, mode: a.gameMode, map: a.mapName, p };
+      const isNew = !hist.matches[id];
+      hist.matches[id] = { v: SCHEMA, t: a.createdAt, mode: a.gameMode, map: a.mapName, p };
+      if (isNew) {
+        added++;
+        if (Date.now() - Date.parse(a.createdAt) < NOTIFY_WITHIN_H * 36e5) await notifyWin(hist.matches[id], players);
+      }
     } catch (e) {
       console.warn(`Match ${id} hoppades över: ${e.message}`);
     }
@@ -128,7 +164,7 @@ async function updateHistory(players) {
   for (const [id, t] of Object.entries(hist.skip)) if (Date.parse(t) < cutoff) delete hist.skip[id];
 
   fs.writeFileSync("history.json", JSON.stringify(hist));
-  console.log(`History: +${added} matcher, totalt ${Object.keys(hist.matches).length}`);
+  console.log(`History: +${added} nya matcher, totalt ${Object.keys(hist.matches).length}`);
 }
 
 (async () => {
