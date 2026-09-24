@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Truppen – PUBG-statistik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --terrain: #2B332C;
+    --ridge: #36403A;
+    --line: #4A5549;
+    --sand: #ECE5D0;
+    --dust: #A9A58F;
+    --pan: #F2A900;
+    --display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+    --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--terrain); color: var(--sand);
+    font: 400 1rem/1.5 var(--body); font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+
+  header h1 {
+    font: 900 clamp(3.5rem, 12vw, 7.5rem)/0.85 var(--display);
+    margin: 0; letter-spacing: -0.01em;
+  }
+  header p { margin: 0.75rem 0 0; color: var(--dust); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; margin: 2rem 0 2.5rem; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .seg button {
+    background: none; border: 0; color: var(--dust); font: 600 0.95rem var(--body);
+    padding: 0.5rem 0.9rem; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--sand); color: var(--terrain); }
+  button:focus-visible, th:focus-visible { outline: 2px solid var(--pan); outline-offset: 2px; }
+
+  .duels { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 2rem 2.5rem; }
+  .duel h2 { font: 700 1.6rem/1 var(--display); margin: 0 0 0.75rem; }
+  .duel ol { list-style: none; margin: 0; padding: 0; }
+  .duel li { display: grid; grid-template-columns: 8.5rem 1fr 3.8rem; align-items: center; gap: 0.6rem; padding: 0.2rem 0; }
+  .duel .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .duel .bar { height: 0.55rem; background: var(--ridge); border-radius: 1px; }
+  .duel .bar i { display: block; height: 100%; background: var(--dust); border-radius: 1px; transition: width .4s ease; }
+  .duel .val { text-align: right; color: var(--dust); }
+  .duel li:first-child .name { font-weight: 600; }
+  .duel li:first-child .bar i { background: var(--pan); }
+  .duel li:first-child .val { color: var(--pan); font-weight: 600; }
+
+  .full { margin-top: 3.5rem; }
+  .full h2 { font: 700 1.6rem/1 var(--display); margin: 0 0 0.75rem; }
+  .scroll { overflow-x: auto; border-top: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; min-width: 44rem; }
+  th, td { padding: 0.55rem 0.6rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font: 600 0.85rem var(--body); color: var(--dust); cursor: pointer; user-select: none; }
+  th[aria-sort] { color: var(--sand); }
+  td.best { color: var(--pan); font-weight: 600; }
+
+  .msg { color: var(--dust); padding: 2rem 0; }
+  footer { margin-top: 2.5rem; color: var(--dust); font-size: 0.85rem; }
+
+  @media (max-width: 30rem) { .duel li { grid-template-columns: 6.5rem 1fr 3.4rem; } }
+  @media (prefers-reduced-motion: reduce) { .duel .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Truppen</h1>
+    <p id="sub">Vem är egentligen bäst i gänget?</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" id="scope" role="group" aria-label="Period">
+      <button data-v="season" aria-pressed="true">Denna säsong</button>
+      <button data-v="lifetime" aria-pressed="false">Totalt</button>
+    </div>
+    <div class="seg" id="mode" role="group" aria-label="Spelläge">
+      <button data-v="solo-fpp" aria-pressed="false">Solo</button>
+      <button data-v="duo-fpp" aria-pressed="false">Duo</button>
+      <button data-v="squad-fpp" aria-pressed="true">Squad</button>
+    </div>
+    <div class="seg" id="view" role="group" aria-label="Perspektiv">
+      <button data-v="fpp" aria-pressed="true">FPP</button>
+      <button data-v="tpp" aria-pressed="false">TPP</button>
+    </div>
+  </div>
+
+  <section class="duels" id="duels"><p class="msg">Laddar statistik…</p></section>
+
+  <section class="full">
+    <h2>Alla siffror</h2>
+    <div class="scroll"><table id="table"></table></div>
+  </section>
+
+  <footer id="foot"></footer>
+</main>
+
+<script>
+const METRICS = [
+  { key: "kd",     label: "K/D",           fmt: v => v.toFixed(2) },
+  { key: "adr",    label: "Skada/match",   fmt: v => Math.round(v) },
+  { key: "win",    label: "Vinster",       fmt: v => (v * 100).toFixed(1) + "%" },
+  { key: "top10",  label: "Topp 10",       fmt: v => (v * 100).toFixed(0) + "%" },
+  { key: "hs",     label: "Headshots",     fmt: v => (v * 100).toFixed(0) + "%" },
+  { key: "kills",  label: "Kills",         fmt: v => v },
+  { key: "long",   label: "Längsta kill",  fmt: v => Math.round(v) + " m" },
+  { key: "rounds", label: "Matcher",       fmt: v => v },
+];
+
+const state = { scope: "season", mode: "squad", view: "fpp", sort: "kd" };
+let data;
+
+function derive(s) {
+  if (!s || !s.roundsPlayed) return null;
+  const r = s.roundsPlayed;
+  return {
+    rounds: r, kills: s.kills, wins: s.wins,
+    kd: s.kills / Math.max(r - s.wins, 1),
+    adr: s.damageDealt / r,
+    win: s.wins / r,
+    top10: s.top10s / r,
+    hs: s.kills ? s.headshotKills / s.kills : 0,
+    long: s.longestKill,
+  };
+}
+
+function rows() {
+  const m = state.view === "fpp" ? `${state.mode}-fpp` : state.mode;
+  const set = data.stats[state.scope][m] || {};
+  return data.players.map(p => ({ name: p.name, s: derive(set[p.id]) }));
+}
+
+function render() {
+  const list = rows();
+  const played = list.filter(r => r.s);
+
+  const duels = document.getElementById("duels");
+  if (!played.length) {
+    duels.innerHTML = `<p class="msg">Ingen har spelat det här läget ${state.scope === "season" ? "den här säsongen" : "ännu"}. Välj ett annat läge ovan.</p>`;
+  } else {
+    duels.innerHTML = METRICS.map(m => {
+      const ranked = [...played].sort((a, b) => b.s[m.key] - a.s[m.key]);
+      const max = ranked[0].s[m.key] || 1;
+      return `<div class="duel"><h2>${m.label}</h2><ol>${ranked.map(r =>
+        `<li><span class="name" title="${r.name}">${r.name}</span>
+         <span class="bar"><i style="width:${(r.s[m.key] / max * 100).toFixed(1)}%"></i></span>
+         <span class="val">${m.fmt(r.s[m.key])}</span></li>`).join("")}</ol></div>`;
+    }).join("");
+  }
+
+  const best = {};
+  METRICS.forEach(m => best[m.key] = Math.max(...played.map(r => r.s[m.key])));
+  const sorted = [...list].sort((a, b) => (b.s?.[state.sort] ?? -1) - (a.s?.[state.sort] ?? -1));
+  document.getElementById("table").innerHTML =
+    `<thead><tr><th scope="col">Spelare</th>${METRICS.map(m =>
+      `<th scope="col" tabindex="0" data-k="${m.key}" ${state.sort === m.key ? 'aria-sort="descending"' : ""}>${m.label}</th>`).join("")}</tr></thead>
+     <tbody>${sorted.map(r => `<tr><td>${r.name}</td>${METRICS.map(m =>
+       r.s ? `<td class="${played.length > 1 && r.s[m.key] === best[m.key] ? "best" : ""}">${m.fmt(r.s[m.key])}</td>` : "<td>–</td>").join("")}</tr>`).join("")}</tbody>`;
+}
+
+function bindSeg(id, prop) {
+  document.getElementById(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[prop] = b.dataset.v.replace("-fpp", "");
+    e.currentTarget.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    render();
+  });
+}
+bindSeg("scope", "scope"); bindSeg("mode", "mode"); bindSeg("view", "view");
+
+function sortBy(e) {
+  const th = e.target.closest("th[data-k]"); if (!th) return;
+  if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault(); state.sort = th.dataset.k; render();
+}
+document.getElementById("table").addEventListener("click", sortBy);
+document.getElementById("table").addEventListener("keydown", sortBy);
+
+fetch("stats.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw 0; return r.json(); })
+  .then(d => {
+    data = d;
+    const t = new Date(d.updated).toLocaleString("sv-SE", { dateStyle: "medium", timeStyle: "short" });
+    document.getElementById("foot").textContent = `Uppdaterad ${t}. Data från PUBG:s officiella API, Steam PC.`;
+    render();
+  })
+  .catch(() => {
+    document.getElementById("duels").innerHTML =
+      '<p class="msg">stats.json finns inte än. Gå till fliken Actions på GitHub och kör "Uppdatera statistik" en gång.</p>';
+  });
+</script>
+</body>
+</html>
