@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Truppen – PUBG-statistik</title>
+<meta name="description" content="Vem är egentligen bäst i gänget? Ranking, form, duos, vapen och skamvrån i PUBG.">
+<meta name="theme-color" content="#2B332C">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Truppen – PUBG-statistik">
+<meta property="og:description" content="Vem är egentligen bäst i gänget? Ranking, form, duos, vapen och skamvrån i PUBG.">
+<meta property="og:url" content="https://digestivemarcus.github.io/pubg-stats/">
+<meta property="og:image" content="https://digestivemarcus.github.io/pubg-stats/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,28 +23,35 @@
 <style>
   :root {
     --terrain: #2B332C; --ridge: #36403A; --line: #4A5549;
-    --sand: #ECE5D0; --dust: #A9A58F; --pan: #F2A900; --blood: #D0673F;
+    --sand: #ECE5D0; --dust: #A9A58F; --pan: #F2A900; --blood: #D0673F; --sage: #9BBF7A;
     --display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
     --body: "Barlow", "Segoe UI", system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 7.5rem; }
   body { margin: 0; background: var(--terrain); color: var(--sand); font: 400 1rem/1.5 var(--body); font-variant-numeric: tabular-nums; }
   main { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  a { color: inherit; }
 
   header h1 { font: 900 clamp(3.5rem, 12vw, 7.5rem)/0.85 var(--display); margin: 0; letter-spacing: -0.01em; }
   header p { margin: 0.75rem 0 0; color: var(--dust); }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; margin: 2rem 0 0; position: sticky; top: 0; z-index: 5; background: var(--terrain); padding: 0.75rem 0; }
+  .bar-top { position: sticky; top: 0; z-index: 5; background: var(--terrain); margin: 2rem -1.25rem 0; padding: 0.75rem 1.25rem 0; border-bottom: 1px solid var(--line); }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; }
   .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
-  .seg button { background: none; border: 0; color: var(--dust); font: 600 0.95rem var(--body); padding: 0.5rem 0.9rem; cursor: pointer; }
+  .seg button { background: none; border: 0; color: var(--dust); font: 600 0.95rem var(--body); padding: 0.45rem 0.85rem; cursor: pointer; }
   .seg button + button { border-left: 1px solid var(--line); }
   .seg button[aria-pressed="true"] { background: var(--sand); color: var(--terrain); }
-  button:focus-visible, th:focus-visible { outline: 2px solid var(--pan); outline-offset: 2px; }
+  nav { display: flex; gap: 1.1rem; overflow-x: auto; padding: 0.6rem 0 0.55rem; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav a { color: var(--dust); text-decoration: none; white-space: nowrap; font-weight: 500; font-size: 0.92rem; }
+  nav a:hover { color: var(--sand); }
+  button:focus-visible, th:focus-visible, a:focus-visible, select:focus-visible { outline: 2px solid var(--pan); outline-offset: 2px; }
 
   section { margin-top: 3.5rem; }
   section > h2 { font: 900 2.4rem/1 var(--display); margin: 0 0 0.35rem; }
   section > h2 + :not(.note) { margin-top: 1.25rem; }
-  section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 40rem; }
+  section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 42rem; }
 
   /* Totalranking */
   .rank { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
@@ -42,6 +61,17 @@
   .rank .who { font-weight: 600; font-size: 1.15rem; }
   .rank .why { display: block; font-weight: 400; font-size: 0.9rem; color: var(--dust); }
   .rank .avg { color: var(--dust); white-space: nowrap; }
+
+  /* Utmärkelser och höjdpunkter */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .tile { padding: 1rem 1.1rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .tile .t-head { color: var(--dust); font-size: 0.92rem; }
+  .tile .t-who { display: block; font-weight: 600; font-size: 1.15rem; margin-top: 0.15rem; }
+  .tile .t-val { display: block; color: var(--dust); font-size: 0.9rem; }
+  .tile.gold .t-who { color: var(--pan); }
+  .tile.shame .t-who { color: var(--blood); }
+  .tile .big { display: block; font: 900 2.6rem/1 var(--display); margin: 0.35rem 0 0.1rem; }
+  .tile.gold .big { color: var(--pan); }
 
   /* Duell-staplar */
   .duels { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 2rem 2.5rem; }
@@ -58,19 +88,47 @@
   .shame .duel li:first-child .bar i { background: var(--blood); }
   .shame .duel li:first-child .val { color: var(--blood); }
 
+  /* Duell 1 mot 1 */
+  .vs-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .vs-pick span { font: 900 1.6rem/1 var(--display); color: var(--dust); }
+  select { background: var(--ridge); color: var(--sand); border: 1px solid var(--line); border-radius: 4px; font: 600 1rem var(--body); padding: 0.45rem 0.6rem; }
+  .vs-score { font: 900 3rem/1 var(--display); margin: 1.25rem 0 0.75rem; }
+  .vs-score .lead { color: var(--pan); }
+  .vs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .vs li { display: grid; grid-template-columns: 5rem 1fr 9rem 1fr 5rem; align-items: center; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--line); }
+  .vs .a { text-align: right; } .vs .lbl { text-align: center; color: var(--dust); font-size: 0.9rem; }
+  .vs .ba, .vs .bb { height: 0.55rem; background: var(--ridge); display: flex; }
+  .vs .ba { justify-content: flex-end; }
+  .vs .ba i, .vs .bb i { display: block; height: 100%; background: var(--dust); }
+  .vs .win { color: var(--pan); font-weight: 600; } .vs .win-bar i { background: var(--pan); }
+  @media (max-width: 36rem) { .vs li { grid-template-columns: 4rem 1fr 6.5rem 1fr 4rem; font-size: 0.9rem; } }
+
+  /* Vapen */
+  .guns { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 2rem 2.5rem; }
+  .guns h3 { font: 700 1.5rem/1 var(--display); margin: 0 0 0.6rem; }
+  .guns ol { list-style: none; margin: 0; padding: 0; }
+  .guns li { display: grid; grid-template-columns: 1fr 3rem; gap: 0.2rem 0.6rem; padding: 0.25rem 0; }
+  .guns .bar { grid-column: 1 / -1; height: 0.4rem; background: var(--ridge); }
+  .guns .bar i { display: block; height: 100%; background: var(--dust); }
+  .guns li:first-child .bar i { background: var(--pan); }
+  .guns .pc { text-align: right; color: var(--dust); }
+
   /* Tabeller */
   .scroll { overflow-x: auto; border-top: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; }
   th, td { padding: 0.55rem 0.6rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th:first-child, td:first-child { text-align: left; }
   th { font: 600 0.85rem var(--body); color: var(--dust); }
-  #table { min-width: 60rem; } #table th { cursor: pointer; user-select: none; }
+  #table { min-width: 64rem; } #table th { cursor: pointer; user-select: none; }
   th[aria-sort] { color: var(--sand); }
   td.best { color: var(--pan); font-weight: 600; }
-  .up { color: #9BBF7A; } .down { color: var(--blood); }
+  td small { display: block; color: var(--dust); font-size: 0.8rem; }
+  .up { color: var(--sage); } .down { color: var(--blood); }
   thead tr.group th { color: var(--sand); text-align: center; border-bottom: 0; padding-bottom: 0; }
 
   .chart { position: relative; height: 18rem; margin-top: 1.5rem; }
+  .charts2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1.5rem; }
+  .charts2 .chart { margin-top: 0; }
 
   /* Spelarkort */
   .picker { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
@@ -88,7 +146,7 @@
   .msg { color: var(--dust); padding: 1rem 0; }
   footer { margin-top: 3rem; color: var(--dust); font-size: 0.85rem; }
   @media (max-width: 30rem) { .duel li { grid-template-columns: 6.5rem 1fr 3.6rem; } }
-  @media (prefers-reduced-motion: reduce) { .duel .bar i { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .duel .bar i { transition: none; } }
 </style>
 </head>
 <body>
@@ -98,65 +156,124 @@
     <p>Vem är egentligen bäst i gänget?</p>
   </header>
 
-  <div class="controls">
-    <div class="seg" id="scope" role="group" aria-label="Period">
-      <button data-v="season" aria-pressed="true">Denna säsong</button>
-      <button data-v="lifetime" aria-pressed="false">Totalt</button>
+  <div class="bar-top">
+    <div class="controls">
+      <div class="seg" id="scope" role="group" aria-label="Period">
+        <button data-v="season" aria-pressed="true">Denna säsong</button>
+        <button data-v="lifetime" aria-pressed="false">Totalt</button>
+      </div>
+      <div class="seg" id="mode" role="group" aria-label="Spelläge">
+        <button data-v="all" aria-pressed="true">Alla</button>
+        <button data-v="solo" aria-pressed="false">Solo</button>
+        <button data-v="duo" aria-pressed="false">Duo</button>
+        <button data-v="squad" aria-pressed="false">Squad</button>
+      </div>
+      <div class="seg" id="view" role="group" aria-label="Perspektiv">
+        <button data-v="fpp" aria-pressed="true">FPP</button>
+        <button data-v="tpp" aria-pressed="false">TPP</button>
+      </div>
     </div>
-    <div class="seg" id="mode" role="group" aria-label="Spelläge">
-      <button data-v="all" aria-pressed="true">Alla</button>
-      <button data-v="solo" aria-pressed="false">Solo</button>
-      <button data-v="duo" aria-pressed="false">Duo</button>
-      <button data-v="squad" aria-pressed="false">Squad</button>
-    </div>
-    <div class="seg" id="view" role="group" aria-label="Perspektiv">
-      <button data-v="fpp" aria-pressed="true">FPP</button>
-      <button data-v="tpp" aria-pressed="false">TPP</button>
-    </div>
+    <nav aria-label="Hoppa till">
+      <a href="#s-rank">Ranking</a><a href="#s-awards">Utmärkelser</a><a href="#s-week">Veckan</a>
+      <a href="#s-vs">Duell</a><a href="#s-combat">Strid</a><a href="#s-surv">Överlevnad</a>
+      <a href="#s-shame">Skamvrån</a><a href="#s-form">Form</a><a href="#s-trend">Utveckling</a>
+      <a href="#s-duos">Duos</a><a href="#s-guns">Vapen</a><a href="#s-maps">Kartor</a>
+      <a href="#s-nemesis">Ärkefiender</a><a href="#s-modes">Per läge</a><a href="#s-card">Spelarkort</a><a href="#s-all">Alla siffror</a>
+    </nav>
   </div>
 
-  <section>
+  <section id="s-rank">
     <h2>Totalranking</h2>
     <p class="note">Snittplacering i sju kategorier: K/D, KDA, skada per match, vinster, topp 10, headshots och längsta kill.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
   </section>
 
-  <section>
+  <section id="s-awards">
+    <h2>Utmärkelser</h2>
+    <div class="tiles" id="awards"></div>
+  </section>
+
+  <section id="s-week">
+    <h2>Veckans höjdpunkter</h2>
+    <p class="note">De senaste sju dagarna, alla lägen.</p>
+    <div class="tiles" id="week"></div>
+  </section>
+
+  <section id="s-vs">
+    <h2>Duell</h2>
+    <div class="vs-pick"><select id="vsA" aria-label="Spelare 1"></select><span>mot</span><select id="vsB" aria-label="Spelare 2"></select></div>
+    <div id="vs"></div>
+  </section>
+
+  <section id="s-combat">
     <h2>Strid</h2>
     <div class="duels" id="combat"></div>
   </section>
 
-  <section>
+  <section id="s-surv">
     <h2>Överlevnad</h2>
     <div class="duels" id="survival"></div>
   </section>
 
-  <section class="shame">
+  <section class="shame" id="s-shame">
     <h2>Skamvrån</h2>
-    <p class="note" id="shameNote">Flest dödsfall, flest gånger knockad och störst andel kills på bottar.</p>
+    <p class="note" id="shameNote"></p>
     <div class="duels" id="shameGrid"></div>
   </section>
 
-  <section>
+  <section id="s-form">
     <h2>Senaste formen</h2>
     <p class="note">De 10 senaste matcherna jämfört med säsongssnittet.</p>
     <div class="scroll"><table id="form"></table></div>
     <div class="chart"><canvas id="formChart" aria-label="Skada per match, senaste 10 matcherna"></canvas></div>
   </section>
 
-  <section>
+  <section id="s-trend">
+    <h2>Utveckling över tid</h2>
+    <p class="note">Per vecka, från matchhistoriken. Blir mer intressant ju längre sidan har varit igång.</p>
+    <div class="charts2">
+      <div class="chart"><canvas id="trendKd" aria-label="K/D per vecka"></canvas></div>
+      <div class="chart"><canvas id="trendDmg" aria-label="Skada per match per vecka"></canvas></div>
+    </div>
+  </section>
+
+  <section id="s-duos">
+    <h2>Bästa duon</h2>
+    <p class="note">Hur det går när två i gänget spelar i samma lag. Sorterat på snittplacering, minst 3 matcher ihop.</p>
+    <div class="scroll"><table id="duos"></table></div>
+  </section>
+
+  <section id="s-guns">
+    <h2>Favoritvapen</h2>
+    <p class="note" id="gunNote">Andel av alla kills per vapen.</p>
+    <div class="guns" id="guns"></div>
+  </section>
+
+  <section id="s-maps">
+    <h2>Bästa karta</h2>
+    <p class="note">Snittplacering och skada per match. Bästa kartan per spelare är markerad (minst 3 matcher).</p>
+    <div class="scroll"><table id="maps"></table></div>
+  </section>
+
+  <section id="s-nemesis">
+    <h2>Ärkefiender</h2>
+    <p class="note">Den fiende som har dödat varje spelare flest gånger.</p>
+    <div class="tiles" id="nemesis"></div>
+  </section>
+
+  <section id="s-modes">
     <h2>Per läge</h2>
     <div class="scroll"><table id="modes" style="min-width:44rem"></table></div>
   </section>
 
-  <section>
+  <section id="s-card">
     <h2>Spelarkort</h2>
     <p class="note">Placeringen efter varje nyckeltal är rangen i gänget.</p>
     <div class="picker" id="picker"></div>
     <div class="card" id="card"></div>
   </section>
 
-  <section>
+  <section id="s-all">
     <h2>Alla siffror</h2>
     <p class="note">Klicka på en rubrik för att sortera.</p>
     <div class="scroll"><table id="table"></table></div>
@@ -167,7 +284,33 @@
 
 <script>
 const COLORS = ["#F2A900", "#ECE5D0", "#7FB3C8", "#D0673F", "#9BBF7A", "#B98FD6", "#E58FA8", "#6FC3B2", "#C8B06B", "#8FA0E5"];
+const MAPS = {
+  Baltic_Main: "Erangel", Erangel_Main: "Erangel", Desert_Main: "Miramar", Savage_Main: "Sanhok",
+  DihorOtok_Main: "Vikendi", Tiger_Main: "Taego", Kiki_Main: "Deston", Neon_Main: "Rondo",
+  Summerland_Main: "Karakin", Chimera_Main: "Paramo", Heaven_Main: "Haven", Range_Main: "Camp Jackal",
+};
+const mapName = k => MAPS[k] || String(k).replace(/_Main$/, "");
+const WEAPONS = {
+  WeapHK416_C: "M416", WeapAK47_C: "AKM", WeapBerylM762_C: "Beryl M762", "WeapSCAR-L_C": "SCAR-L", WeapM16A4_C: "M16A4",
+  WeapG36C_C: "G36C", WeapQBZ95_C: "QBZ", WeapAUG_C: "AUG", WeapGroza_C: "Groza", WeapACE32_C: "ACE32", WeapK2_C: "K2",
+  WeapFamasG2_C: "FAMAS", WeapMk47Mutant_C: "Mk47 Mutant", WeapMini14_C: "Mini 14", WeapSKS_C: "SKS", WeapSLR_C: "SLR",
+  WeapMk14_C: "Mk14", WeapQBU88_C: "QBU", WeapDragunov_C: "Dragunov", WeapMk12_C: "Mk12", WeapVSS_C: "VSS",
+  WeapKar98k_C: "Kar98k", WeapM24_C: "M24", WeapAWM_C: "AWM", WeapMosinNagant_C: "Mosin Nagant", WeapWin94_C: "Win94",
+  WeapLynxAMR_C: "Lynx AMR", WeapUMP_C: "UMP45", WeapVector_C: "Vector", WeapUZI_C: "Micro UZI", WeapThompson_C: "Tommy Gun",
+  WeapBizonPP19_C: "PP-19 Bizon", WeapMP5K_C: "MP5K", WeapP90_C: "P90", WeapJS9_C: "JS9", WeapM249_C: "M249",
+  WeapDP28_C: "DP-28", WeapMG3_C: "MG3", WeapRPD_C: "RPD", WeapSaiga12_C: "S12K", WeapDP12_C: "DBS", WeapBerreta686_C: "S686",
+  WeapWinchester_C: "S1897", WeapOriginS12_C: "O12", WeapSawnoff_C: "Sawed-off", WeapCrossbow_1_C: "Armborst",
+  WeapM1911_C: "P1911", WeapG18_C: "P18C", WeapM9_C: "P92", WeapNagantM1895_C: "R1895", WeapRhino_C: "R45",
+  WeapDesertEagle_C: "Deagle", WeapPanzerFaust100M1_C: "Panzerfaust", WeapMortar_C: "Granatkastare",
+  ProjGrenade_C: "Granat", ProjMolotov_C: "Molotov", ProjStickyGrenade_C: "Klistergranat", ProjC4_C: "C4",
+  WeapPan_C: "Stekpanna", WeapMachete_C: "Machete", WeapCrowbar_C: "Kofot", WeapSickle_C: "Skära",
+  PlayerFemale_A_C: "Nävar", PlayerMale_A_C: "Nävar",
+};
+const VEHICLE = /Dacia|Uaz|Buggy|Motorbike|Motorglider|Boat|Mirado|PickupTruck|Pony|BRDM|Scooter|Snowbike|Snowmobile|TukTuk|Rony|Niva|Blanc|Pillar|Dirtbike|Bike|AquaRail|Van|Food_Truck|Porter|Kiga/i;
+const weaponName = w => WEAPONS[w] || (VEHICLE.test(w) ? "Fordon" : String(w).replace(/^(Weap|Proj|BP_)/, "").replace(/_C$/, "").replace(/_/g, " "));
+
 const pct = d => v => (v * 100).toFixed(d) + "%";
+const time = v => `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}`;
 const M = {
   kd:      { label: "K/D",               fmt: v => v.toFixed(2) },
   kda:     { label: "KDA",               fmt: v => v.toFixed(2) },
@@ -179,7 +322,7 @@ const M = {
   long:    { label: "Längsta kill",      fmt: v => Math.round(v) + " m" },
   win:     { label: "Vinster",           fmt: pct(1) },
   top10:   { label: "Topp 10",           fmt: pct(0) },
-  surv:    { label: "Överlevnad/match",  fmt: v => `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}` },
+  surv:    { label: "Överlevnad/match",  fmt: time },
   revives: { label: "Revives",           fmt: v => v },
   heals:   { label: "Heals+boosts/match", fmt: v => v.toFixed(1) },
   dist:    { label: "Distans/match",     fmt: v => v.toFixed(1) + " km" },
@@ -188,16 +331,35 @@ const M = {
   knocked: { label: "Gånger knockad",    fmt: v => v },
   knockedPm: { label: "Knockad/match",   fmt: v => v.toFixed(2) },
   botPct:  { label: "Andel bot-kills",   fmt: pct(0) },
+  firstPct: { label: "Dör först",        fmt: pct(0) },
 };
 const RANK_KEYS = ["kd", "kda", "adr", "win", "top10", "hs", "long"];
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
 const SURVIVAL = ["win", "top10", "surv", "revives", "heals", "dist", "rounds"];
-const SHAME = ["deaths", "knocked", "knockedPm", "botPct"];
+const SHAME = ["deaths", "knocked", "knockedPm", "botPct", "firstPct"];
 const TABLE = ["rounds", ...COMBAT.filter(k => k !== "kills"), "kills", ...SURVIVAL.filter(k => k !== "rounds"), ...SHAME];
+const VS_KEYS = ["kd", "kda", "adr", "kpm", "hs", "long", "win", "top10", "surv", "revives", "knockedPm", "botPct", "firstPct"];
+const LOWER_IS_BETTER = new Set(["deaths", "knocked", "knockedPm", "botPct", "firstPct"]);
+const AWARDS = [
+  { icon: "🎯", name: "Prickskytten", key: "long", what: "längsta kill" },
+  { icon: "💥", name: "Skademaskinen", key: "adr", what: "skada per match" },
+  { icon: "🧠", name: "Huvudjägaren", key: "hs", what: "headshots" },
+  { icon: "🍗", name: "Kycklingmästaren", key: "win", what: "vinster" },
+  { icon: "🩹", name: "Sjukvårdaren", key: "revives", what: "revives" },
+  { icon: "🏃", name: "Överlevaren", key: "surv", what: "överlevnad per match" },
+  { icon: "🤖", name: "Botjägaren", key: "botPct", what: "av alla kills på bottar", shame: true },
+  { icon: "🪦", name: "Först ut", key: "firstPct", what: "av matcherna först att dö", shame: true },
+  { icon: "🧲", name: "Kulmagneten", key: "knockedPm", what: "knockad per match", shame: true },
+];
 
-const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null };
+const state = { scope: "season", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null };
 let data, history = { matches: {} };
 const charts = {};
+const nameOf = id => data.players.find(p => p.id === id)?.name ?? "?";
+const colorOf = id => COLORS[Math.max(0, data.players.findIndex(p => p.id === id)) % COLORS.length];
+const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtDate = t => new Date(t).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
 
 // ---- Data ----
 const modeKeys = () => (state.mode === "all" ? ["solo", "duo", "squad"] : [state.mode])
@@ -212,11 +374,23 @@ function sumStats(list) {
   return out;
 }
 
-function playerHistory(id, keys = modeKeys()) {
-  return Object.values(history.matches)
-    .filter(m => keys.includes(m.mode) && m.p[id])
-    .sort((a, b) => a.t.localeCompare(b.t))
-    .map(m => ({ ...m.p[id], t: m.t, map: m.map }));
+const filteredMatches = () => Object.values(history.matches)
+  .filter(m => modeKeys().includes(m.mode)).sort((a, b) => a.t.localeCompare(b.t));
+
+const playerHistory = (id, ms) => ms.filter(m => m.p[id]).map(m => ({ ...m.p[id], t: m.t, map: m.map, mode: m.mode }));
+
+function firstOut(ms) {
+  const first = {}, shared = {};
+  for (const m of ms) {
+    const ids = Object.keys(m.p);
+    if (ids.length < 2) continue;
+    const dead = ids.filter(id => m.p[id].dead);
+    if (!dead.length) continue;
+    ids.forEach(id => shared[id] = (shared[id] || 0) + 1);
+    const f = dead.reduce((a, b) => m.p[a].surv <= m.p[b].surv ? a : b);
+    first[f] = (first[f] || 0) + 1;
+  }
+  return { first, shared };
 }
 
 function derive(s, h) {
@@ -232,70 +406,134 @@ function derive(s, h) {
     revives: s.revives, heals: (s.heals + s.boosts) / r,
     dist: (s.walkDistance + s.rideDistance + s.swimDistance) / r / 1000,
   };
-  if (h.length) { v.knocked = h.reduce((a, m) => a + m.knocked, 0); v.knockedPm = v.knocked / h.length; }
-  const hb = h.filter(m => m.bk != null), tk = hb.reduce((a, m) => a + m.tk, 0);
-  if (tk) { v.botKills = hb.reduce((a, m) => a + m.bk, 0); v.botPct = v.botKills / tk; }
+  if (h.length) { v.knocked = sum(h, m => m.knocked); v.knockedPm = v.knocked / h.length; }
+  const hb = h.filter(m => m.bk != null), tk = sum(hb, m => m.tk);
+  if (tk) { v.botKills = sum(hb, m => m.bk); v.botPct = v.botKills / tk; }
   return v;
 }
 
 function rows() {
   const set = data.stats[state.scope];
+  const ms = filteredMatches();
+  const fo = firstOut(ms);
   return data.players.map((p, i) => {
-    const h = playerHistory(p.id);
-    return { id: p.id, name: p.name, color: COLORS[i % COLORS.length], h, v: derive(sumStats(modeKeys().map(k => set[k]?.[p.id])), h) };
+    const h = playerHistory(p.id, ms);
+    const v = derive(sumStats(modeKeys().map(k => set[k]?.[p.id])), h);
+    if (v && fo.shared[p.id]) v.firstPct = (fo.first[p.id] || 0) / fo.shared[p.id];
+    return { id: p.id, name: p.name, color: COLORS[i % COLORS.length], h, v };
   });
 }
 
-// ---- Render ----
+// ---- Render-hjälp ----
 const has = (r, k) => r.v && r.v[k] != null;
-
+function ranks(list, key) {
+  const vals = list.filter(r => has(r, key)).map(r => r.v[key]).sort((a, b) => b - a);
+  return r => has(r, key) ? vals.indexOf(r.v[key]) + 1 : null;
+}
 function duel(list, key) {
   const ranked = list.filter(r => has(r, key)).sort((a, b) => b.v[key] - a.v[key]);
   if (!ranked.length) return "";
   const max = ranked[0].v[key] || 1;
   return `<div class="duel"><h3>${M[key].label}</h3><ol>${ranked.map(r =>
-    `<li><span class="name" title="${r.name}">${r.name}</span>
+    `<li><span class="name" title="${esc(r.name)}">${esc(r.name)}</span>
      <span class="bar"><i style="width:${(r.v[key] / max * 100).toFixed(1)}%"></i></span>
      <span class="val">${M[key].fmt(r.v[key])}</span></li>`).join("")}</ol></div>`;
 }
+const empty = txt => `<p class="msg">${txt}</p>`;
+const NO_HIST = "Fylls på när matchhistoriken har hämtats.";
 
-function ranks(list, key) {
-  const vals = list.filter(r => has(r, key)).map(r => r.v[key]).sort((a, b) => b - a);
-  return r => has(r, key) ? vals.indexOf(r.v[key]) + 1 : null;
-}
-
+// ---- Sektioner ----
 function renderRanking(list) {
   const played = list.filter(r => r.v);
   const rk = Object.fromEntries(RANK_KEYS.map(k => [k, ranks(played, k)]));
-  const scored = played.map(r => {
-    const pos = RANK_KEYS.map(k => rk[k](r));
-    const leads = RANK_KEYS.filter(k => rk[k](r) === 1).map(k => M[k].label);
-    return { r, avg: pos.reduce((a, b) => a + b, 0) / pos.length, leads };
-  }).sort((a, b) => a.avg - b.avg);
+  const scored = played.map(r => ({
+    r, avg: sum(RANK_KEYS, k => rk[k](r)) / RANK_KEYS.length,
+    leads: RANK_KEYS.filter(k => rk[k](r) === 1).map(k => M[k].label),
+  })).sort((a, b) => a.avg - b.avg);
   let place = 0;
   document.getElementById("rank").innerHTML = scored.length ? scored.map((x, i) => {
     if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1;
-    const why = x.leads.length ? `Bäst på ${x.leads.join(", ").toLowerCase().replace("k/d", "K/D").replace("kda", "KDA")}` : "";
-    return `<li><span class="pos">${place}</span><span class="who">${x.r.name}<span class="why">${why}</span></span><span class="avg">snitt ${x.avg.toFixed(1)}</span></li>`;
+    const why = x.leads.length ? `Bäst på ${x.leads.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
+    return `<li><span class="pos">${place}</span><span class="who">${esc(x.r.name)}<span class="why">${why}</span></span><span class="avg">snitt ${x.avg.toFixed(1)}</span></li>`;
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
+}
+
+function renderAwards(list) {
+  const tiles = AWARDS.map(a => {
+    const c = list.filter(r => has(r, a.key)).sort((x, y) => y.v[a.key] - x.v[a.key]);
+    if (!c.length) return "";
+    const tied = c.filter(r => r.v[a.key] === c[0].v[a.key]);
+    const top = tied.length > 2 ? `Delad mellan ${tied.length} spelare` : tied.map(r => esc(r.name)).join(" & ");
+    return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
+      <span class="t-who">${top}</span><span class="t-val">${M[a.key].fmt(c[0].v[a.key])} ${a.what}</span></div>`;
+  }).join("");
+  document.getElementById("awards").innerHTML = tiles || empty("Inga utmärkelser i det här läget.");
+}
+
+function renderWeek() {
+  const since = Date.now() - 7 * 864e5;
+  const all = Object.values(history.matches).sort((a, b) => b.t.localeCompare(a.t));
+  const week = all.filter(m => Date.parse(m.t) >= since);
+  const el = document.getElementById("week");
+  if (!all.length) { el.innerHTML = empty(NO_HIST); return; }
+  const best = f => {
+    let top = null;
+    for (const m of week) for (const [id, s] of Object.entries(m.p)) {
+      const v = f(s);
+      if (v != null && (!top || v > top.v)) top = { v, id, m };
+    }
+    return top;
+  };
+  const tile = (head, x, fmt) => x && x.v > 0
+    ? `<div class="tile gold"><span class="t-head">${head}</span><span class="big">${fmt(x.v)}</span>
+       <span class="t-who">${esc(nameOf(x.id))}</span><span class="t-val">${mapName(x.m.map)}, ${fmtDate(x.m.t)}</span></div>`
+    : `<div class="tile"><span class="t-head">${head}</span><span class="t-val">Inget än den här veckan.</span></div>`;
+  const win = all.find(m => Object.values(m.p).some(s => s.place === 1));
+  const winTile = win
+    ? `<div class="tile gold"><span class="t-head">🍗 Senaste chicken dinner</span><span class="big">${fmtDate(win.t)}</span>
+       <span class="t-who">${Object.entries(win.p).filter(([, s]) => s.place === 1).map(([id]) => esc(nameOf(id))).join(" & ")}</span>
+       <span class="t-val">${mapName(win.map)}, ${sum(Object.values(win.p).filter(s => s.place === 1), s => s.k)} kills${Date.parse(win.t) < since ? " (inte denna vecka)" : ""}</span></div>`
+    : `<div class="tile"><span class="t-head">🍗 Senaste chicken dinner</span><span class="t-val">Ingen vinst i historiken än. Dags att ändra på det.</span></div>`;
+  el.innerHTML = tile("Flest kills i en match", best(s => s.k), v => v) +
+    tile("Mest skada i en match", best(s => s.dmg), v => v) +
+    tile("Längsta kill", best(s => s.lk), v => v + " m") + winTile +
+    `<div class="tile"><span class="t-head">Matcher denna vecka</span><span class="big">${week.length}</span><span class="t-val">med minst en från gänget</span></div>`;
+}
+
+function renderVs(list) {
+  const ids = list.map(r => r.id);
+  if (!ids.includes(state.a)) state.a = ids[0];
+  if (!ids.includes(state.b) || state.b === state.a) state.b = ids.find(i => i !== state.a);
+  const opts = sel => list.map(r => `<option value="${r.id}" ${r.id === sel ? "selected" : ""}>${esc(r.name)}</option>`).join("");
+  document.getElementById("vsA").innerHTML = opts(state.a);
+  document.getElementById("vsB").innerHTML = opts(state.b);
+  const A = list.find(r => r.id === state.a), B = list.find(r => r.id === state.b), el = document.getElementById("vs");
+  if (!A?.v || !B?.v) { el.innerHTML = empty("Båda behöver ha spelat det valda läget."); return; }
+  let sa = 0, sb = 0;
+  const lines = VS_KEYS.filter(k => has(A, k) && has(B, k)).map(k => {
+    const a = A.v[k], b = B.v[k], low = LOWER_IS_BETTER.has(k), max = Math.max(a, b) || 1;
+    const aw = a !== b && (low ? a < b : a > b), bw = a !== b && !aw;
+    sa += aw; sb += bw;
+    return `<li><span class="a ${aw ? "win" : ""}">${M[k].fmt(a)}</span>
+      <span class="ba ${aw ? "win-bar" : ""}"><i style="width:${a / max * 100}%"></i></span>
+      <span class="lbl">${M[k].label}</span>
+      <span class="bb ${bw ? "win-bar" : ""}"><i style="width:${b / max * 100}%"></i></span>
+      <span class="${bw ? "win" : ""}">${M[k].fmt(b)}</span></li>`;
+  });
+  el.innerHTML = `<div class="vs-score"><span class="${sa > sb ? "lead" : ""}">${sa}</span> – <span class="${sb > sa ? "lead" : ""}">${sb}</span></div><ul class="vs">${lines.join("")}</ul>`;
 }
 
 function renderForm(list) {
   const withH = list.filter(r => r.h.length);
   const t = document.getElementById("form");
-  if (!withH.length) {
-    t.innerHTML = '<tr><td class="msg">Formen fylls på efter nästa uppdatering, när matchhistoriken har hämtats.</td></tr>';
-  } else {
-    t.innerHTML = `<thead><tr><th>Spelare</th><th>Matcher</th><th>K/D</th><th>Skada/match</th><th>mot säsong</th><th>Snittplacering</th><th>Knockad</th></tr></thead><tbody>` +
-      withH.map(r => {
-        const last = r.h.slice(-10), n = last.length;
-        const kills = last.reduce((a, m) => a + m.k, 0), deaths = last.reduce((a, m) => a + m.dead, 0);
-        const dmg = last.reduce((a, m) => a + m.dmg, 0) / n, place = last.reduce((a, m) => a + m.place, 0) / n;
-        const diff = r.v ? dmg - r.v.adr : null;
-        const d = diff == null ? "–" : `<span class="${diff >= 0 ? "up" : "down"}">${diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff))}</span>`;
-        return `<tr><td>${r.name}</td><td>${n}</td><td>${(kills / Math.max(deaths, 1)).toFixed(2)}</td><td>${Math.round(dmg)}</td><td>${d}</td><td>#${place.toFixed(1)}</td><td>${last.reduce((a, m) => a + m.knocked, 0)}</td></tr>`;
-      }).join("") + "</tbody>";
-  }
+  t.innerHTML = !withH.length ? `<tr><td class="msg">${NO_HIST}</td></tr>` :
+    `<thead><tr><th>Spelare</th><th>Matcher</th><th>K/D</th><th>Skada/match</th><th>mot säsong</th><th>Snittplacering</th><th>Knockad</th></tr></thead><tbody>` +
+    withH.map(r => {
+      const last = r.h.slice(-10), n = last.length;
+      const dmg = sum(last, m => m.dmg) / n, diff = r.v ? dmg - r.v.adr : null;
+      const d = diff == null ? "–" : `<span class="${diff >= 0 ? "up" : "down"}">${diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff))}</span>`;
+      return `<tr><td>${esc(r.name)}</td><td>${n}</td><td>${(sum(last, m => m.k) / Math.max(sum(last, m => m.dead), 1)).toFixed(2)}</td><td>${Math.round(dmg)}</td><td>${d}</td><td>#${(sum(last, m => m.place) / n).toFixed(1)}</td><td>${sum(last, m => m.knocked)}</td></tr>`;
+    }).join("") + "</tbody>";
   draw("formChart", {
     type: "line",
     data: {
@@ -309,14 +547,113 @@ function renderForm(list) {
   });
 }
 
+function isoWeek(t) {
+  const d = new Date(t); d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+  const y = d.getUTCFullYear(), w1 = new Date(Date.UTC(y, 0, 4));
+  const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getUTCDay() + 6) % 7)) / 7);
+  return `${y}-${String(w).padStart(2, "0")}`;
+}
+
+function renderTrend(list) {
+  const withH = list.filter(r => r.h.length);
+  const weeks = [...new Set(withH.flatMap(r => r.h.map(m => isoWeek(m.t))))].sort();
+  const labels = weeks.map(w => "v." + +w.split("-")[1]);
+  const series = f => withH.map(r => ({
+    label: r.name, borderColor: r.color, backgroundColor: r.color, tension: 0.3, spanGaps: true,
+    data: weeks.map(w => { const ms = r.h.filter(m => isoWeek(m.t) === w); return ms.length ? f(ms) : null; }),
+  }));
+  const opt = title => ({ plugins: { title: { display: true, text: weeks.length ? title : `${title} (ingen historik än)` } }, scales: { y: { beginAtZero: true } } });
+  draw("trendKd", { type: "line", data: { labels, datasets: series(ms => sum(ms, m => m.k) / Math.max(sum(ms, m => m.dead), 1)) }, options: opt("K/D per vecka") });
+  draw("trendDmg", { type: "line", data: { labels, datasets: series(ms => sum(ms, m => m.dmg) / ms.length) }, options: opt("Skada per match per vecka") });
+}
+
+function renderDuos() {
+  const pairs = {};
+  for (const m of filteredMatches()) {
+    const teams = {};
+    for (const [id, s] of Object.entries(m.p)) (teams[s.place] ??= []).push(id);
+    for (const [place, ids] of Object.entries(teams)) {
+      ids.sort();
+      for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+        const k = ids[i] + "|" + ids[j], p = (pairs[k] ??= { n: 0, place: 0, wins: 0, top10: 0, dmg: 0, kills: 0 });
+        p.n++; p.place += +place; p.wins += +place === 1; p.top10 += +place <= 10;
+        p.dmg += m.p[ids[i]].dmg + m.p[ids[j]].dmg; p.kills += m.p[ids[i]].k + m.p[ids[j]].k;
+      }
+    }
+  }
+  const list = Object.entries(pairs).filter(([, p]) => p.n >= 3).sort((a, b) => a[1].place / a[1].n - b[1].place / b[1].n);
+  const t = document.getElementById("duos");
+  t.innerHTML = !list.length ? `<tr><td class="msg">${Object.keys(history.matches).length ? "Ingen duo har spelat minst 3 matcher ihop i det här läget än." : NO_HIST}</td></tr>` :
+    `<thead><tr><th>Duo</th><th>Matcher ihop</th><th>Snittplacering</th><th>Vinster</th><th>Topp 10</th><th>Kills/match</th><th>Skada/match</th></tr></thead><tbody>` +
+    list.map(([k, p], i) => {
+      const [a, b] = k.split("|");
+      return `<tr><td${i === 0 ? ' class="best"' : ""}>${esc(nameOf(a))} + ${esc(nameOf(b))}</td><td>${p.n}</td><td>#${(p.place / p.n).toFixed(1)}</td><td>${p.wins}</td><td>${Math.round(p.top10 / p.n * 100)}%</td><td>${(p.kills / p.n).toFixed(1)}</td><td>${Math.round(p.dmg / p.n)}</td></tr>`;
+    }).join("") + "</tbody>";
+}
+
+function renderGuns(list) {
+  const total = {};
+  const cards = list.map(r => {
+    const w = {};
+    for (const m of r.h) for (const [raw, n] of Object.entries(m.w || {})) { const nm = weaponName(raw); w[nm] = (w[nm] || 0) + n; total[nm] = (total[nm] || 0) + n; }
+    const all = Object.values(w).reduce((a, b) => a + b, 0);
+    if (!all) return "";
+    const top = Object.entries(w).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    return `<div><h3>${esc(r.name)}</h3><ol>${top.map(([nm, n]) =>
+      `<li><span>${esc(nm)} <small style="color:var(--dust)">${n} kills</small></span><span class="pc">${Math.round(n / all * 100)}%</span><span class="bar"><i style="width:${n / top[0][1] * 100}%"></i></span></li>`).join("")}</ol></div>`;
+  }).join("");
+  document.getElementById("guns").innerHTML = cards || empty(NO_HIST);
+  const fav = Object.entries(total).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById("gunNote").textContent = fav
+    ? `Andel av alla kills per vapen. Gängets favorit är ${fav[0]} med ${fav[1]} kills.`
+    : "Andel av alla kills per vapen.";
+}
+
+function renderMaps(list) {
+  const counts = {};
+  list.forEach(r => r.h.forEach(m => counts[m.map] = (counts[m.map] || 0) + 1));
+  const maps = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const t = document.getElementById("maps");
+  if (!maps.length) { t.innerHTML = `<tr><td class="msg">${NO_HIST}</td></tr>`; return; }
+  t.innerHTML = `<thead><tr><th>Spelare</th>${maps.map(m => `<th>${mapName(m)}</th>`).join("")}</tr></thead><tbody>` +
+    list.filter(r => r.h.length).map(r => {
+      const cell = {};
+      for (const m of maps) { const ms = r.h.filter(x => x.map === m); if (ms.length) cell[m] = { n: ms.length, place: sum(ms, x => x.place) / ms.length, dmg: sum(ms, x => x.dmg) / ms.length }; }
+      const ok = Object.entries(cell).filter(([, c]) => c.n >= 3);
+      const bestMap = ok.length ? ok.sort((a, b) => a[1].place - b[1].place)[0][0] : null;
+      return `<tr><td>${esc(r.name)}</td>${maps.map(m => { const c = cell[m];
+        return c ? `<td class="${m === bestMap ? "best" : ""}">#${c.place.toFixed(1)}<small>${Math.round(c.dmg)} skada, ${c.n} st</small></td>` : "<td>–</td>"; }).join("")}</tr>`;
+    }).join("") + "</tbody>";
+}
+
+function renderNemesis(list) {
+  const ours = new Set(data.players.map(p => p.name));
+  const tiles = list.map(r => {
+    const by = {}; let bots = 0, deaths = 0;
+    for (const m of r.h) {
+      if (!m.kb) continue;
+      deaths++;
+      if (m.kb.bot) { bots++; continue; }
+      by[m.kb.n] = (by[m.kb.n] || 0) + 1;
+    }
+    if (!deaths) return "";
+    const [top, n] = Object.entries(by).sort((a, b) => b[1] - a[1])[0] || [];
+    const friendly = top && ours.has(top) ? " (lagkompis!)" : "";
+    return `<div class="tile shame"><span class="t-head">${esc(r.name)}</span>
+      <span class="t-who">${top ? esc(top) + friendly : "Ingen än"}</span>
+      <span class="t-val">${top ? `dödade ${esc(r.name)} ${n} ${n === 1 ? "gång" : "gånger"}` : ""}${bots ? `${top ? ". " : ""}Dödad av bottar ${bots} ${bots === 1 ? "gång" : "gånger"}` : ""}</span></div>`;
+  }).join("");
+  document.getElementById("nemesis").innerHTML = tiles || empty(NO_HIST);
+}
+
 function renderModes() {
   const set = data.stats[state.scope];
-  const ms = ["solo", "duo", "squad"];
-  const key = m => state.view === "fpp" ? `${m}-fpp` : m;
+  const ms = ["solo", "duo", "squad"], key = m => state.view === "fpp" ? `${m}-fpp` : m;
   document.getElementById("modes").innerHTML =
     `<thead><tr class="group"><th></th>${ms.map(m => `<th colspan="3">${m[0].toUpperCase() + m.slice(1)}</th>`).join("")}</tr>
      <tr><th>Spelare</th>${ms.map(() => "<th>Matcher</th><th>K/D</th><th>Skada</th>").join("")}</tr></thead><tbody>` +
-    data.players.map(p => `<tr><td>${p.name}</td>${ms.map(m => {
+    data.players.map(p => `<tr><td>${esc(p.name)}</td>${ms.map(m => {
       const v = derive(set[key(m)]?.[p.id], []);
       return v ? `<td>${v.rounds}</td><td>${v.kd.toFixed(2)}</td><td>${Math.round(v.adr)}</td>` : "<td>–</td><td>–</td><td>–</td>";
     }).join("")}</tr>`).join("") + "</tbody>";
@@ -325,29 +662,25 @@ function renderModes() {
 function renderCard(list) {
   if (!state.player || !list.some(r => r.id === state.player)) state.player = list[0]?.id;
   document.getElementById("picker").innerHTML = list.map(r =>
-    `<button data-id="${r.id}" aria-pressed="${r.id === state.player}">${r.name}</button>`).join("");
-  const r = list.find(x => x.id === state.player);
-  const card = document.getElementById("card");
-  if (!r?.v) { card.innerHTML = '<p class="msg">Inga matcher i det här läget.</p>'; destroy("outcome"); destroy("placeChart"); return; }
+    `<button data-id="${r.id}" aria-pressed="${r.id === state.player}">${esc(r.name)}</button>`).join("");
+  const r = list.find(x => x.id === state.player), card = document.getElementById("card");
+  if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
-  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct"];
+  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct"];
   card.innerHTML = `<dl>${keys.filter(k => has(r, k)).map(k => {
     const pos = ranks(played, k)(r);
     return `<dt>${M[k].label}</dt><dd>${M[k].fmt(r.v[k])}</dd><dd class="r${pos === 1 ? " top" : ""}">#${pos}</dd>`;
   }).join("")}</dl>
     <div class="charts"><div class="chart"><canvas id="outcome"></canvas></div><div class="chart"><canvas id="placeChart"></canvas></div></div>`;
-
-  const other = r.v.rounds - r.v.top10s;
   draw("outcome", {
     type: "doughnut",
-    data: { labels: ["Vinst", "Topp 10", "Övriga"], datasets: [{ data: [r.v.wins, r.v.top10s - r.v.wins, other], backgroundColor: ["#F2A900", "#7FB3C8", "#4A5549"], borderColor: "#2B332C" }] },
+    data: { labels: ["Vinst", "Topp 10", "Övriga"], datasets: [{ data: [r.v.wins, r.v.top10s - r.v.wins, r.v.rounds - r.v.top10s], backgroundColor: ["#F2A900", "#7FB3C8", "#4A5549"], borderColor: "#2B332C" }] },
     options: { plugins: { title: { display: true, text: `Matchutfall (${r.v.rounds} matcher)` }, legend: { position: "right" } } },
   });
   const last = r.h.slice(-20);
   draw("placeChart", {
     type: "line",
-    data: { labels: last.map(m => new Date(m.t).toLocaleDateString("sv-SE", { day: "numeric", month: "short" })),
-      datasets: [{ label: "Placering", data: last.map(m => m.place), borderColor: r.color, backgroundColor: r.color, tension: 0.3 }] },
+    data: { labels: last.map(m => fmtDate(m.t)), datasets: [{ label: "Placering", data: last.map(m => m.place), borderColor: r.color, backgroundColor: r.color, tension: 0.3 }] },
     options: { plugins: { title: { display: true, text: last.length ? "Placering senaste matcherna" : "Placering (ingen historik än)" }, legend: { display: false } },
       scales: { y: { reverse: true, min: 1, ticks: { callback: v => "#" + v } } } },
   });
@@ -360,21 +693,29 @@ function renderTable(list) {
   document.getElementById("table").innerHTML =
     `<thead><tr><th scope="col">Spelare</th>${TABLE.map(k =>
       `<th scope="col" tabindex="0" data-k="${k}" ${state.sort === k ? 'aria-sort="descending"' : ""}>${M[k].label}</th>`).join("")}</tr></thead>
-     <tbody>${sorted.map(r => `<tr><td>${r.name}</td>${TABLE.map(k =>
+     <tbody>${sorted.map(r => `<tr><td>${esc(r.name)}</td>${TABLE.map(k =>
        has(r, k) ? `<td class="${played.length > 1 && r.v[k] === best[k] && !SHAME.includes(k) ? "best" : ""}">${M[k].fmt(r.v[k])}</td>` : "<td>–</td>").join("")}</tr>`).join("")}</tbody>`;
 }
 
 function render() {
   const list = rows();
   renderRanking(list);
-  document.getElementById("combat").innerHTML = COMBAT.map(k => duel(list, k)).join("");
+  renderAwards(list);
+  renderWeek();
+  renderVs(list);
+  document.getElementById("combat").innerHTML = COMBAT.map(k => duel(list, k)).join("") || empty("Inga matcher i det här läget.");
   document.getElementById("survival").innerHTML = SURVIVAL.map(k => duel(list, k)).join("");
   document.getElementById("shameGrid").innerHTML = SHAME.map(k => duel(list, k)).join("");
   const since = Object.values(history.matches).map(m => m.t).sort()[0];
   document.getElementById("shameNote").textContent = since
-    ? `Dödsfall gäller vald period. Knockad och bot-kills räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}.`
-    : "Dödsfall gäller vald period. Knockad och bot-kills fylls på när matchhistoriken har hämtats.";
+    ? `Dödsfall gäller vald period. Övriga räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}. Dör först = andel av matcherna med minst två från gänget där man dog först.`
+    : "Dödsfall gäller vald period. Övriga fylls på när matchhistoriken har hämtats.";
   renderForm(list);
+  renderTrend(list);
+  renderDuos();
+  renderGuns(list);
+  renderMaps(list);
+  renderNemesis(list);
   renderModes();
   renderCard(list);
   renderTable(list);
@@ -408,6 +749,14 @@ bindSeg("scope", "scope"); bindSeg("mode", "mode"); bindSeg("view", "view");
 document.getElementById("picker").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   state.player = b.dataset.id; renderCard(rows());
+});
+document.getElementById("vsA").addEventListener("change", e => {
+  if (e.target.value === state.b) state.b = state.a;
+  state.a = e.target.value; renderVs(rows());
+});
+document.getElementById("vsB").addEventListener("change", e => {
+  if (e.target.value === state.a) state.a = state.b;
+  state.b = e.target.value; renderVs(rows());
 });
 function sortBy(e) {
   const th = e.target.closest("th[data-k]"); if (!th) return;
