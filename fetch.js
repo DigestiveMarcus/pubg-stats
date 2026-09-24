@@ -11,8 +11,8 @@ if (!KEY) { console.error("PUBG_API_KEY saknas"); process.exit(1); }
 const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
-const MAX_NEW_MATCHES = 60;   // per körning, så första körningen inte tar evigheter
-const SCHEMA = 2;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const MAX_NEW_MATCHES = 120;  // per körning, så första körningen inte tar evigheter
+const SCHEMA = 3;             // höj när nya fält läggs till, så sparade matcher hämtas om
 const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
 
@@ -77,25 +77,38 @@ async function statsFor(seasonId, ids) {
   return out;
 }
 
-// Läser matchloggen: knockar, kills, bot-kills, vapen och vem som dödade våra spelare.
+// Läser matchloggen: knockar, kills, bot-kills, kills och skada per vapen, vem som dödade våra spelare,
+// och hur många lagkompisar de själva har knockat eller dödat.
 function parseTelemetry(tel, ours) {
   const r = {};
-  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, kb: null });
+  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {} });
+  const sameTeam = (a, b) => a && b && a.teamId != null && a.teamId === b.teamId;
   for (const e of tel) {
-    if (e._T === "LogPlayerMakeGroggy") {
-      const v = e.victim?.accountId;
+    if (e._T === "LogPlayerTakeDamage") {
+      const a = e.attacker, v = e.victim;
+      if (!a || !ours.has(a.accountId) || !v || v.accountId === a.accountId || v.teamId === a.teamId || !(e.damage > 0)) continue;
+      const weapon = e.damageCauserName || "Okänt";
+      const wd = get(a.accountId).wd;
+      wd[weapon] = (wd[weapon] || 0) + e.damage;
+    } else if (e._T === "LogPlayerMakeGroggy") {
+      const v = e.victim?.accountId, a = e.attacker?.accountId;
       if (ours.has(v)) get(v).knocked++;
+      if (ours.has(a) && a !== v && sameTeam(e.attacker, e.victim)) {
+        const me = get(a); me.tkn++; me.tkv[e.victim.name] = (me.tkv[e.victim.name] || 0) + 1;
+      }
     } else if (e._T === "LogPlayerKillV2") {
       const k = e.killer?.accountId, v = e.victim?.accountId;
       if (ours.has(v) && k && k !== v) get(v).kb = { n: e.killer.name, bot: k.startsWith("ai.") };
       if (!ours.has(k) || v === k) continue;
       const me = get(k);
+      if (sameTeam(e.killer, e.victim)) { me.tkl++; me.tkv[e.victim.name] = (me.tkv[e.victim.name] || 0) + 1; continue; }
       me.tk++;
       if (String(v).startsWith("ai.")) me.bk++;
       const weapon = e.killerDamageInfo?.damageCauserName;
       if (weapon) me.w[weapon] = (me.w[weapon] || 0) + 1;
     }
   }
+  for (const x of Object.values(r)) for (const k in x.wd) x.wd[k] = Math.round(x.wd[k]);
   return r;
 }
 
@@ -140,12 +153,12 @@ async function updateHistory(players) {
       const p = {};
       for (const x of m.included) {
         if (x.type !== "participant" || !ours.has(x.attributes.stats.playerId)) continue;
-        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, kb: null };
+        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {} };
         p[s.playerId] = {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
           hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
           lk: Math.round(s.longestKill), dead: s.deathType === "alive" ? 0 : 1,
-          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, kb: t.kb,
+          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv,
         };
       }
       const isNew = !hist.matches[id];
