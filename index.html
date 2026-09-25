@@ -31,24 +31,32 @@
   html { scroll-behavior: smooth; scroll-padding-top: 7.5rem; }
   body { margin: 0; background: var(--terrain); color: var(--sand); font: 400 1rem/1.5 var(--body); font-variant-numeric: tabular-nums; }
   .layout { display: grid; grid-template-columns: minmax(0, 64rem); justify-content: center; }
-  main { min-width: 0; padding: 2.5rem 1.25rem 4rem; }
+  main { min-width: 0; padding: 0 1.25rem 4rem; }
   .side { display: none; }
   @media (min-width: 80rem) {
     .layout { grid-template-columns: 12rem minmax(0, 64rem); column-gap: 2rem; }
     .side { display: block; }
     #topNav { display: none; }
   }
-  .side { padding-top: 12.75rem; }
+  .side { padding-top: 32rem; }
   .side nav { display: block; position: sticky; top: 5.5rem; max-height: calc(100vh - 6.5rem); overflow-y: auto; }
   .side a { display: block; padding: 0.3rem 0 0.3rem 0.9rem; border-left: 2px solid var(--line); color: var(--dust); text-decoration: none; font-weight: 500; }
   .side a:hover { color: var(--sand); }
   .side a[aria-current="true"] { color: var(--sand); border-left-color: var(--pan); }
   a { color: inherit; }
 
-  header { display: flex; align-items: center; gap: clamp(1rem, 3vw, 1.75rem); }
-  header img { width: clamp(4.5rem, 16vw, 8.5rem); height: auto; flex: none; }
-  header h1 { font: 900 clamp(3.5rem, 12vw, 7.5rem)/0.85 var(--display); margin: 0; letter-spacing: -0.01em; }
-  header p { margin: 0.75rem 0 0; color: var(--dust); }
+  .hero { position: relative; margin: 0 -1.25rem; }
+  .hero-img { display: block; width: 100%; height: auto; aspect-ratio: 1536 / 690; object-fit: cover; }
+  .hero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; aspect-ratio: 1536 / 690; z-index: 1; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(43,51,44,0) 82%, var(--terrain) 100%); }
+  .hero-text { position: relative; z-index: 2; margin-top: -1rem; padding: 0 1.25rem;
+    display: flex; align-items: center; gap: clamp(1rem, 3vw, 1.75rem); }
+  .hero-text img { width: clamp(4.5rem, 14vw, 7.5rem); height: auto; flex: none; border-radius: 18%; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+  .hero + .bar-top { margin-top: 1.75rem; }
+  .hero-text h1 { text-shadow: 0 3px 18px rgba(0,0,0,.6); }
+  .hero-text p { text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+  .hero-text h1 { font: 900 clamp(3.5rem, 12vw, 7.5rem)/0.85 var(--display); margin: 0; letter-spacing: -0.01em; }
+  .hero-text p { margin: 0.75rem 0 0; color: var(--dust); }
 
   .bar-top { position: sticky; top: 0; z-index: 5; background: var(--terrain); margin: 2rem -1.25rem 0; padding: 0.75rem 1.25rem 0; border-bottom: 1px solid var(--line); }
   .controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; }
@@ -222,11 +230,15 @@
 <div class="layout">
 <aside class="side"><nav id="sideNav" aria-label="Innehåll"></nav></aside>
 <main>
-  <header>
-    <img src="icon-512.png" alt="" width="512" height="512">
-    <div>
-      <h1>Truppen</h1>
-      <p>Vem är egentligen bäst i gänget?</p>
+  <header class="hero">
+    <img class="hero-img" src="banner.jpg" srcset="banner-800.jpg 800w, banner.jpg 1536w" sizes="(max-width: 64rem) 100vw, 64rem"
+         alt="Gänget i full PUBG-utrustning framför en airdrop" width="1536" height="690">
+    <div class="hero-text">
+      <img src="icon-512.png" alt="" width="512" height="512">
+      <div>
+        <h1>Truppen</h1>
+        <p>Vem är egentligen bäst i gänget?</p>
+      </div>
     </div>
   </header>
 
@@ -1172,8 +1184,12 @@ document.getElementById("gunPicker").addEventListener("click", e => {
     const t = top.querySelector(`a[href="#${id}"]`);
     if (t && top.offsetParent) top.scrollTo({ left: t.offsetLeft - top.clientWidth / 2 + t.offsetWidth / 2, behavior: "smooth" });
   };
-  const pad = () => document.documentElement.style.scrollPaddingTop = document.querySelector(".bar-top").offsetHeight + 16 + "px";
-  pad(); addEventListener("resize", pad);
+  const pad = () => {
+    const bar = document.querySelector(".bar-top");
+    document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 16 + "px";
+    document.querySelector(".side").style.paddingTop = bar.offsetTop + "px";
+  };
+  pad(); addEventListener("resize", pad); addEventListener("load", pad);
   const obs = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && mark(e.target.id)), { rootMargin: "-35% 0px -60% 0px" });
   secs.forEach(s => obs.observe(s));
   mark(secs[0].id);
