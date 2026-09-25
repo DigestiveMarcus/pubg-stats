@@ -79,10 +79,14 @@
 
   /* Totalranking */
   .rank { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-  .rank li { display: grid; grid-template-columns: 3rem 1fr auto; align-items: baseline; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
+  .rank li { display: grid; grid-template-columns: 3rem 1fr auto; align-items: center; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
   .rank .pos { font: 900 2.2rem/1 var(--display); color: var(--dust); }
   .rank li:first-child .pos { color: var(--pan); }
-  .rank .who { font-weight: 600; font-size: 1.15rem; }
+  .rank .who { font-weight: 600; font-size: 1.15rem; display: flex; align-items: center; gap: 0.85rem; }
+  .avatar { width: 2.75rem; height: 2.75rem; border-radius: 50%; flex: none; object-fit: cover; background: var(--ridge);
+    display: inline-grid; place-items: center; font: 700 1.1rem/1 var(--display); color: var(--terrain); box-shadow: 0 0 0 2px var(--line); }
+  .rank li:first-child .avatar { box-shadow: 0 0 0 2px var(--pan); }
+  .rank .who > span { min-width: 0; }
   .rank .why { display: block; font-weight: 400; font-size: 0.9rem; color: var(--dust); }
   .rank .avg { color: var(--dust); white-space: nowrap; }
 
@@ -587,6 +591,16 @@ function duel(list, key) {
 const empty = txt => `<p class="msg">${txt}</p>`;
 const NO_HIST = "Fylls på när matchhistoriken har hämtats.";
 
+// Profilbilder: lägg en bild i mappen avatars/ med exakt spelarnamn, t.ex. avatars/ELIDEG.jpg.
+// Saknas bilden visas spelarens initial i hans färg.
+const noAvatar = new Set();
+function avatar(r) {
+  const initial = `<span class="avatar" style="background:${r.color}" aria-hidden="true">${esc(r.name[0].toUpperCase())}</span>`;
+  if (noAvatar.has(r.name)) return initial;
+  return `<img class="avatar" src="avatars/${encodeURIComponent(r.name)}.jpg" alt="" loading="lazy"
+    onerror="noAvatar.add(${esc(JSON.stringify(r.name))}); this.outerHTML = ${esc(JSON.stringify(initial))}">`;
+}
+
 // ---- Sektioner ----
 function renderRanking(list) {
   const played = list.filter(r => r.v);
@@ -599,7 +613,7 @@ function renderRanking(list) {
   document.getElementById("rank").innerHTML = scored.length ? scored.map((x, i) => {
     if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1;
     const why = x.leads.length ? `Bäst på ${x.leads.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
-    return `<li><span class="pos">${place}</span><span class="who">${esc(x.r.name)}<span class="why">${why}</span></span><span class="avg">snitt ${x.avg.toFixed(1)}</span></li>`;
+    return `<li><span class="pos">${place}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg">snitt ${x.avg.toFixed(1)}</span></li>`;
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
 }
 
