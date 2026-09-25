@@ -78,21 +78,25 @@
   section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 42rem; }
 
   /* Flikar */
-  .tabs { position: sticky; top: 0; z-index: 6; display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none;
-    background: var(--terrain); margin: 0 -1.25rem; padding: 0.35rem 1.25rem 0; border-bottom: 1px solid var(--line); }
+  .tabs { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem;
+    background: var(--terrain); margin: 0 -1.25rem; padding: 0.6rem 1.25rem; border-bottom: 1px solid var(--line); }
+  .tabs button { display: flex; align-items: center; justify-content: center; gap: 0.55rem; min-height: 3.4rem;
+    background: var(--ridge); border: 1px solid var(--line); border-radius: 6px; color: var(--sand);
+    font: 700 clamp(1.15rem, 1.45vw, 1.45rem)/1 var(--display); letter-spacing: 0.01em; padding: 0.5rem 0.6rem; cursor: pointer; white-space: nowrap; overflow: hidden;
+    transition: background .15s, border-color .15s, color .15s; }
+  .tabs button .ti { font-size: 1.35rem; line-height: 1; }
+  .tabs button:hover { border-color: var(--pan); }
+  .tabs button[aria-selected="true"] { background: var(--pan); border-color: var(--pan); color: var(--terrain); box-shadow: 0 4px 14px rgba(242,169,0,.25); }
+  .tabs button:focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
   @media (max-width: 40rem) {
     .bar-top { position: static; }
-    .tabs button { font-size: 1.2rem; padding: 0.4rem 0.6rem 0.5rem; }
+    .tabs { gap: 0.35rem; padding: 0.5rem 0.75rem; }
+    .tabs button { flex-direction: column; gap: 0.2rem; min-height: 3.6rem; font-size: 1rem; padding: 0.4rem 0.25rem; white-space: normal; text-align: center; line-height: 1.05; }
+    .tabs button .ti { font-size: 1.25rem; }
     .rank li { grid-template-columns: 1.8rem minmax(0, 1fr) auto; gap: 0.6rem; }
     .rank .who { gap: 0.6rem; font-size: 1.05rem; }
     .rank .avatar { width: 2.25rem; height: 2.25rem; }
   }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tabs button { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; color: var(--dust);
-    font: 700 1.35rem/1 var(--display); padding: 0.45rem 0.8rem 0.55rem; cursor: pointer; white-space: nowrap; }
-  .tabs button:hover { color: var(--sand); }
-  .tabs button[aria-selected="true"] { color: var(--sand); border-bottom-color: var(--pan); }
-  .tabs button:first-child { padding-left: 0; }
   section[hidden] { display: none; }
 
   /* Profilbilder, storlekar */
@@ -1358,10 +1362,10 @@ document.getElementById("gunPicker").addEventListener("click", e => {
 
 // ---- Meny ----
 const TABS = [
-  { id: "oversikt", label: "Översikt", secs: ["s-rank", "s-awards", "s-week", "s-records", "s-streaks"] },
-  { id: "spelare", label: "Spelare", secs: ["s-vs", "s-card", "s-combat", "s-surv", "s-shame", "s-form", "s-trend", "s-all"] },
-  { id: "matcher", label: "Matcher", secs: ["s-log", "s-duos", "s-nemesis", "s-modes"] },
-  { id: "vapen-kartor", label: "Vapen och kartor", secs: ["s-guns", "s-maps", "s-geo"] },
+  { id: "oversikt", icon: "🏆", label: "Översikt", secs: ["s-rank", "s-awards", "s-week", "s-records", "s-streaks"] },
+  { id: "spelare", icon: "🪖", label: "Spelare", secs: ["s-vs", "s-card", "s-combat", "s-surv", "s-shame", "s-form", "s-trend", "s-all"] },
+  { id: "matcher", icon: "🎮", label: "Matcher", secs: ["s-log", "s-duos", "s-nemesis", "s-modes"] },
+  { id: "vapen-kartor", icon: "🗺️", label: "Vapen och kartor", secs: ["s-guns", "s-maps", "s-geo"] },
 ];
 let setTab;
 (function buildNav() {
@@ -1370,7 +1374,7 @@ let setTab;
   for (const t of TABS) for (const id of t.secs) { const s = document.getElementById(id); if (s) { main.insertBefore(s, foot); tabOf[id] = t.id; } }
   const side = document.getElementById("sideNav"), top = document.getElementById("topNav"), bar = document.querySelector(".bar-top");
   document.getElementById("tabs").innerHTML = TABS.map(t =>
-    `<button role="tab" id="tab-${t.id}" data-tab="${t.id}" aria-selected="false">${t.label}</button>`).join("");
+    `<button role="tab" id="tab-${t.id}" data-tab="${t.id}" aria-selected="false"><span class="ti" aria-hidden="true">${t.icon}</span><span>${t.label}</span></button>`).join("");
   const label = s => esc(s.dataset.nav || s.querySelector("h2").textContent);
   let current = null, obs;
   const mark = id => {
