@@ -35,15 +35,12 @@
   main { min-width: 0; padding: 0 1.25rem 4rem; }
   .side { display: none; }
   @media (min-width: 80rem) {
-    .layout { grid-template-columns: 12rem minmax(0, 64rem); column-gap: 2rem; }
+    .layout { grid-template-columns: 14rem minmax(0, 64rem); column-gap: 2rem; }
     .side { display: block; }
     #topNav { display: none; }
   }
   .side { padding-top: 32rem; }
   .side nav { display: block; position: sticky; top: 5.5rem; max-height: calc(100vh - 6.5rem); overflow-y: auto; }
-  .side a { display: block; padding: 0.3rem 0 0.3rem 0.9rem; border-left: 2px solid var(--line); color: var(--dust); text-decoration: none; font-weight: 500; }
-  .side a:hover { color: var(--sand); }
-  .side a[aria-current="true"] { color: var(--sand); border-left-color: var(--pan); }
   a { color: inherit; }
 
   .hero { position: relative; margin: 0 -1.25rem; }
@@ -288,6 +285,11 @@
     .vs-score .avatar.lg { width: 3.4rem; height: 3.4rem; }
     .vs-pick select { max-width: 100%; }
   }
+  .side nav { display: flex; flex-direction: column; gap: 0.2rem; }
+  .side a { display: block; padding: 0.6rem 0.9rem 0.6rem 1rem; border-left: 3px solid var(--line); border-radius: 0 6px 6px 0;
+    color: var(--dust); text-decoration: none; font: 700 1.3rem/1.1 var(--display); letter-spacing: 0.01em; transition: background .15s, color .15s; }
+  .side a:hover { color: var(--sand); background: var(--ridge); }
+  .side a[aria-current="true"] { color: var(--sand); background: var(--ridge); border-left-color: var(--pan); }
 </style>
 </head>
 <body>
