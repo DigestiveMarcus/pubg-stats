@@ -290,15 +290,53 @@
     color: var(--dust); text-decoration: none; font: 700 1.3rem/1.1 var(--display); letter-spacing: 0.01em; transition: background .15s, color .15s; }
   .side a:hover { color: var(--sand); background: var(--ridge); }
   .side a[aria-current="true"] { color: var(--sand); background: var(--ridge); border-left-color: var(--pan); }
+  /* Online-status */
+  .side { position: relative; }
+  .status { --on: #4ADE80; }
+  .side .status { position: absolute; top: 2.5rem; left: 0; right: 0; }
+  .status h3 { font: 700 1.3rem/1 var(--display); margin: 0 0 0.2rem; }
+  .status .st-note { color: var(--dust); font-size: 0.78rem; margin: 0 0 0.75rem; }
+  .status ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+  .status li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.6rem;
+    padding: 0.45rem 0.6rem; border-radius: 6px; background: var(--ridge); border: 1px solid var(--line); }
+  .status li.on { border-color: rgba(74,222,128,.45); }
+  .status .st-av { position: relative; display: inline-flex; }
+  .status .st-av .dot { position: absolute; right: -2px; bottom: -2px; width: 0.8rem; height: 0.8rem; border-radius: 50%;
+    background: var(--dust); border: 2px solid var(--ridge); }
+  .status li.on .dot { background: var(--on); box-shadow: 0 0 8px var(--on); }
+  .status li.off .avatar { filter: grayscale(1); opacity: 0.65; }
+  .status .st-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status .st-state { display: block; font-size: 0.8rem; color: var(--dust); }
+  .status li.on .st-state b { color: var(--on); }
+  .status li.off .st-state b { color: var(--dust); }
+  .status-top { display: none; }
+  @media (max-width: 79.99rem) {
+    .status-top { display: block; position: absolute; top: 0.75rem; left: 0.75rem; z-index: 3; }
+    .status-top h3, .status-top .st-note { display: none; }
+    .status-top { right: 0.75rem; }
+    .status-top ul { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .status-top li { padding: 0.25rem 0.6rem 0.25rem 0.3rem; background: rgba(43,51,44,.82); backdrop-filter: blur(4px); border-radius: 999px; }
+    .status-top .st-state { display: inline; margin-left: 0.3rem; font-size: 0.75rem; }
+    .status-top .st-state .ago { display: none; }
+    .status-top .st-name { font-size: 0.85rem; }
+    .status-top .avatar.sm { width: 1.6rem; height: 1.6rem; }
+  }
+  @media (max-width: 40rem) {
+    .status-top { top: 0.5rem; left: 0.5rem; }
+    .status-top ul { display: flex; flex-wrap: wrap; max-width: 14rem; }
+    .status-top li { grid-template-columns: auto; padding: 0.2rem; }
+    .status-top .st-text { display: none; }
+  }
 </style>
 </head>
 <body>
 <div class="layout">
-<aside class="side"><nav id="sideNav" aria-label="Innehåll"></nav></aside>
+<aside class="side"><div class="status" id="statusSide" aria-live="polite"></div><nav id="sideNav" aria-label="Innehåll"></nav></aside>
 <main>
   <header class="hero">
     <img class="hero-img" src="banner.jpg" srcset="banner-800.jpg 800w, banner.jpg 1536w" sizes="(max-width: 64rem) 100vw, 64rem"
          alt="Gänget i full PUBG-utrustning framför en airdrop" width="1536" height="690">
+    <div class="status status-top" id="statusTop" aria-live="polite"></div>
     <div class="hero-text">
       <img src="icon-512.png" alt="" width="512" height="512">
       <div>
@@ -766,6 +804,28 @@ const RECORDS = [
   { head: "Längst överlevnad", f: s => s.surv, fmt: time },
   { head: "Mest skada utan kill", f: s => s.k === 0 ? s.dmg : null, fmt: v => v, shame: true },
 ];
+
+const STALE_MIN = 90; // om ingen uppdatering skett på så här länge visas alla som offline
+function renderStatus() {
+  const st = data.status || {};
+  const fresh = Date.now() - Date.parse(data.updated) < STALE_MIN * 6e4;
+  const ago = t => {
+    const m = Math.round((Date.now() - Date.parse(t)) / 6e4);
+    return m < 60 ? `${m} min sedan` : m < 1440 ? `${Math.round(m / 60)} tim sedan` : `${Math.round(m / 1440)} d sedan`;
+  };
+  const histLast = {};
+  for (const m of Object.values(history.matches)) for (const pid in m.p) if (!histLast[pid] || m.t > histLast[pid]) histLast[pid] = m.t;
+  const list = data.players.map((p, i) => ({ ...p, color: COLORS[i % COLORS.length], on: fresh && !!st[p.id]?.online, last: st[p.id]?.last || histLast[p.id] }))
+    .sort((a, b) => b.on - a.on || String(b.last).localeCompare(String(a.last)));
+  const n = list.filter(x => x.on).length;
+  const html = `<h3>Status</h3><p class="st-note">${n ? `${n} av ${list.length} spelar just nu` : "Ingen spelar just nu"} · uppdateras var 30:e min</p>
+    <ul>${list.map(x => `<li class="${x.on ? "on" : "off"}" title="${esc(x.name)}: ${x.on ? "Online" : "Offline"}">
+      <span class="st-av">${avatar(x, "sm")}<span class="dot"></span></span>
+      <span class="st-text"><span class="st-name">${esc(x.name)}</span>
+      <span class="st-state"><b>${x.on ? "Online" : "Offline"}</b>${x.last ? `<span class="ago"> · spelade ${ago(x.last)}</span>` : ""}</span></span></li>`).join("")}</ul>`;
+  document.getElementById("statusSide").innerHTML = html;
+  document.getElementById("statusTop").innerHTML = html;
+}
 
 function renderRecords() {
   const ms = filteredMatches();
@@ -1259,6 +1319,7 @@ function render() {
   renderRanking(list);
   renderAwards(list);
   renderWeek();
+  renderStatus();
   renderRecords();
   renderStreaks(list);
   renderVs(list);

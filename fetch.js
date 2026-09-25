@@ -146,6 +146,7 @@ async function updateHistory(players) {
   console.log(`${todo.length} matcher att hämta, max ${MAX_NEW_MATCHES} per körning`);
 
   let added = 0;
+  const fresh = new Set(); // spelare med en ny match i den här körningen = "online"
   for (const id of todo.slice(0, MAX_NEW_MATCHES)) {
     try {
       const m = await free(`${BASE}/matches/${id}`, HEADERS);
@@ -171,6 +172,7 @@ async function updateHistory(players) {
       hist.matches[id] = { v: SCHEMA, t: a.createdAt, mode: a.gameMode, map: a.mapName, p };
       if (isNew) {
         added++;
+        if (Date.now() - Date.parse(a.createdAt) < 3 * 36e5) Object.keys(p).forEach(pid => fresh.add(pid));
         if (Date.now() - Date.parse(a.createdAt) < NOTIFY_WITHIN_H * 36e5) await notifyWin(hist.matches[id], players);
       }
     } catch (e) {
@@ -184,6 +186,10 @@ async function updateHistory(players) {
 
   fs.writeFileSync("history.json", JSON.stringify(hist));
   console.log(`History: +${added} nya matcher, totalt ${Object.keys(hist.matches).length}`);
+
+  const last = {};
+  for (const m of Object.values(hist.matches)) for (const pid of Object.keys(m.p)) if (!last[pid] || m.t > last[pid]) last[pid] = m.t;
+  return Object.fromEntries(players.map(pl => [pl.id, { online: fresh.has(pl.id), last: last[pl.id] || null }]));
 }
 
 (async () => {
@@ -203,8 +209,8 @@ async function updateHistory(players) {
       lifetime: await statsFor("lifetime", ids),
     },
   };
+  data.status = await updateHistory(players);
   fs.writeFileSync("stats.json", JSON.stringify(data, null, 1));
-
-  await updateHistory(players);
+  console.log("Online:", players.filter(p => data.status[p.id].online).map(p => p.name).join(", ") || "ingen");
   console.log(`Klart: ${players.length} spelare, säsong ${current}`);
 })().catch(e => { console.error(e); process.exit(1); });
