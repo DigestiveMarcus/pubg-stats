@@ -53,13 +53,13 @@
   .hero-text { position: relative; z-index: 2; margin-top: -1rem; padding: 0 1.25rem;
     display: flex; align-items: center; gap: clamp(1rem, 3vw, 1.75rem); }
   .hero-text img { width: clamp(4.5rem, 14vw, 7.5rem); height: auto; flex: none; border-radius: 18%; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
-  .hero + .bar-top { margin-top: 1.75rem; }
+  .hero + #barAnchor { height: 1.75rem; }
   .hero-text h1 { text-shadow: 0 3px 18px rgba(0,0,0,.6); }
   .hero-text p { text-shadow: 0 1px 6px rgba(0,0,0,.7); }
   .hero-text h1 { font: 900 clamp(3.5rem, 12vw, 7.5rem)/0.85 var(--display); margin: 0; letter-spacing: -0.01em; }
   .hero-text p { margin: 0.75rem 0 0; color: var(--dust); }
 
-  .bar-top { position: sticky; top: 0; z-index: 5; background: var(--terrain); margin: 2rem -1.25rem 0; padding: 0.75rem 1.25rem 0; border-bottom: 1px solid var(--line); }
+  .bar-top { position: sticky; top: var(--tabs-h, 3.1rem); z-index: 5; background: var(--terrain); margin: 0 -1.25rem; padding: 0.7rem 1.25rem 0; border-bottom: 1px solid var(--line); }
   .controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; }
   .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
   .seg button { background: none; border: 0; color: var(--dust); font: 600 0.95rem var(--body); padding: 0.45rem 0.85rem; cursor: pointer; }
@@ -76,6 +76,44 @@
   section > h2 { font: 900 2.4rem/1 var(--display); margin: 0 0 0.35rem; }
   section > h2 + :not(.note) { margin-top: 1.25rem; }
   section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 42rem; }
+
+  /* Flikar */
+  .tabs { position: sticky; top: 0; z-index: 6; display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none;
+    background: var(--terrain); margin: 0 -1.25rem; padding: 0.35rem 1.25rem 0; border-bottom: 1px solid var(--line); }
+  @media (max-width: 40rem) {
+    .bar-top { position: static; }
+    .tabs button { font-size: 1.2rem; padding: 0.4rem 0.6rem 0.5rem; }
+    .rank li { grid-template-columns: 1.8rem minmax(0, 1fr) auto; gap: 0.6rem; }
+    .rank .who { gap: 0.6rem; font-size: 1.05rem; }
+    .rank .avatar { width: 2.25rem; height: 2.25rem; }
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; color: var(--dust);
+    font: 700 1.35rem/1 var(--display); padding: 0.45rem 0.8rem 0.55rem; cursor: pointer; white-space: nowrap; }
+  .tabs button:hover { color: var(--sand); }
+  .tabs button[aria-selected="true"] { color: var(--sand); border-bottom-color: var(--pan); }
+  .tabs button:first-child { padding-left: 0; }
+  section[hidden] { display: none; }
+
+  /* Profilbilder, storlekar */
+  .avatar.xs { width: 1.5rem; height: 1.5rem; font-size: 0.8rem; box-shadow: none; }
+  .avatar.sm { width: 2rem; height: 2rem; font-size: 0.9rem; }
+  .avatar.lg { width: 4.5rem; height: 4.5rem; font-size: 1.8rem; }
+  .avatar.xl { width: 6.5rem; height: 6.5rem; font-size: 2.6rem; }
+  .avs { display: inline-flex; margin-right: 0.5rem; vertical-align: middle; }
+  .avs > * + * { margin-left: -0.6rem; }
+  .tile .t-who { display: flex; align-items: center; gap: 0.55rem; }
+
+  /* Rekord */
+  .rec .t-list { list-style: none; margin: 0.5rem 0 0; padding: 0; font-size: 0.9rem; color: var(--dust); }
+  .rec .t-list li { display: flex; align-items: center; gap: 0.4rem; padding: 0.1rem 0; }
+  .rec .t-list b { color: var(--sand); font-weight: 600; margin-left: auto; }
+
+  /* Svit och torka */
+  .streak-top { margin-bottom: 1.5rem; }
+  .m-who .who { display: inline-flex; align-items: center; gap: 0.4rem; }
+  td .who { display: inline-flex; align-items: center; gap: 0.5rem; }
+  td.hot { color: var(--pan); font-weight: 600; } td.cold { color: var(--blood); font-weight: 600; }
 
   /* Totalranking */
   .rank { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
@@ -105,8 +143,9 @@
   .duels { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 2rem 2.5rem; }
   .duel h3 { font: 700 1.5rem/1 var(--display); margin: 0 0 0.6rem; }
   .duel ol { list-style: none; margin: 0; padding: 0; }
-  .duel li { display: grid; grid-template-columns: 8.5rem 1fr 4rem; align-items: center; gap: 0.6rem; padding: 0.2rem 0; }
-  .duel .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .duel li { display: grid; grid-template-columns: 10rem 1fr 4rem; align-items: center; gap: 0.6rem; padding: 0.2rem 0; }
+  .duel .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.45rem; }
+  .duel .name span { overflow: hidden; text-overflow: ellipsis; }
   .duel .bar { height: 0.55rem; background: var(--ridge); border-radius: 1px; }
   .duel .bar i { display: block; height: 100%; background: var(--dust); border-radius: 1px; transition: width .4s ease; }
   .duel .val { text-align: right; color: var(--dust); }
@@ -120,7 +159,10 @@
   .vs-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
   .vs-pick span { font: 900 1.6rem/1 var(--display); color: var(--dust); }
   select { background: var(--ridge); color: var(--sand); border: 1px solid var(--line); border-radius: 4px; font: 600 1rem var(--body); padding: 0.45rem 0.6rem; }
-  .vs-score { font: 900 3rem/1 var(--display); margin: 1.25rem 0 0.75rem; }
+  .vs-score { display: flex; align-items: center; gap: 1.25rem; font: 900 3rem/1 var(--display); margin: 1.25rem 0 0.75rem; }
+  .vs-score .side-a, .vs-score .side-b { display: flex; align-items: center; gap: 0.9rem; font: 600 1.05rem var(--body); }
+  .vs-score .side-b { flex-direction: row-reverse; }
+  .vs-score .avatar.lead { box-shadow: 0 0 0 3px var(--pan); }
   .vs-score .lead { color: var(--pan); }
   .vs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
   .vs li { display: grid; grid-template-columns: 5rem 1fr 9rem 1fr 5rem; align-items: center; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--line); }
@@ -214,8 +256,11 @@
 
   /* Spelarkort */
   .picker { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
-  .picker button { background: none; border: 1px solid var(--line); color: var(--dust); font: 600 0.95rem var(--body); padding: 0.45rem 0.8rem; border-radius: 4px; cursor: pointer; }
+  .picker button { display: inline-flex; align-items: center; gap: 0.45rem; background: none; border: 1px solid var(--line); color: var(--dust); font: 600 0.95rem var(--body); padding: 0.45rem 0.8rem; border-radius: 4px; cursor: pointer; }
   .picker button[aria-pressed="true"] { border-color: var(--pan); color: var(--pan); }
+  .card-head { display: flex; align-items: center; gap: 1.1rem; margin-bottom: 1.25rem; }
+  .card-head b { display: block; font: 900 2.2rem/1 var(--display); }
+  .card-head span { color: var(--dust); }
   .card { display: grid; grid-template-columns: minmax(15rem, 1fr) minmax(15rem, 1.4fr); gap: 2rem; }
   .card dl { margin: 0; display: grid; grid-template-columns: 1fr auto auto; gap: 0.1rem 1rem; align-content: start; }
   .card dt { color: var(--dust); } .card dd { margin: 0; text-align: right; }
@@ -225,10 +270,20 @@
   .card .chart { height: 13rem; margin: 0; }
   @media (max-width: 44rem) { .card { grid-template-columns: 1fr; } }
 
+  .tiles .tile .t-who { display: flex; align-items: center; gap: 0.55rem; }
+  .rec .t-list b { white-space: nowrap; }
+  .tile.shame .big { color: var(--blood); }
   .msg { color: var(--dust); padding: 1rem 0; }
   footer { margin-top: 3rem; color: var(--dust); font-size: 0.85rem; }
   @media (max-width: 30rem) { .duel li { grid-template-columns: 6.5rem 1fr 3.6rem; } }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .duel .bar i { transition: none; } }
+  .vs-score > span:nth-child(2) { white-space: nowrap; }
+  @media (max-width: 40rem) {
+    .vs-score { justify-content: space-between; gap: 0.5rem; font-size: 2.4rem; }
+    .vs-score .side-a, .vs-score .side-b { flex: 1 1 0; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .vs-score .avatar.lg { width: 3.4rem; height: 3.4rem; }
+    .vs-pick select { max-width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -247,6 +302,8 @@
     </div>
   </header>
 
+ <div id="barAnchor" aria-hidden="true"></div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Flikar"></div>
   <div class="bar-top">
     <div class="controls">
       <div class="seg" id="scope" role="group" aria-label="Period">
@@ -282,6 +339,19 @@
     <h2>Veckans höjdpunkter</h2>
     <p class="note">De senaste sju dagarna, alla lägen.</p>
     <div class="tiles" id="week"></div>
+  </section>
+
+  <section id="s-records" data-nav="Rekord">
+    <h2>Rekordtavla</h2>
+    <p class="note" id="recNote">Bästa enskilda matcherna genom tiderna, från matchhistoriken.</p>
+    <div class="tiles rec" id="records"></div>
+  </section>
+
+  <section id="s-streaks" data-nav="Svit och torka">
+    <h2>Svit och torka</h2>
+    <p class="note">Pågående och längsta sviter, från matchhistoriken. Topp 10-svit = matcher i rad på topp 10. Torka = matcher i rad utan kill.</p>
+    <div class="tiles streak-top" id="streakTop"></div>
+    <div class="scroll"><table id="streaks" style="min-width:44rem"></table></div>
   </section>
 
   <section id="s-vs">
@@ -389,6 +459,7 @@
     <h2>Spelarkort</h2>
     <p class="note">Placeringen efter varje nyckeltal är rangen i gänget.</p>
     <div class="picker" id="picker"></div>
+    <div class="card-head" id="cardHead"></div>
     <div class="card" id="card"></div>
   </section>
 
@@ -584,7 +655,7 @@ function duel(list, key) {
   if (!ranked.length) return "";
   const max = ranked[0].v[key] || 1;
   return `<div class="duel"><h3>${M[key].label}</h3><ol>${ranked.map(r =>
-    `<li><span class="name" title="${esc(r.name)}">${esc(r.name)}</span>
+    `<li><span class="name" title="${esc(r.name)}">${avatar(r, "xs")}<span>${esc(r.name)}</span></span>
      <span class="bar"><i style="width:${(r.v[key] / max * 100).toFixed(1)}%"></i></span>
      <span class="val">${M[key].fmt(r.v[key])}</span></li>`).join("")}</ol></div>`;
 }
@@ -594,12 +665,16 @@ const NO_HIST = "Fylls på när matchhistoriken har hämtats.";
 // Profilbilder: lägg en bild i mappen avatars/ med exakt spelarnamn, t.ex. avatars/ELIDEG.jpg.
 // Saknas bilden visas spelarens initial i hans färg.
 const noAvatar = new Set();
-function avatar(r) {
-  const initial = `<span class="avatar" style="background:${r.color}" aria-hidden="true">${esc(r.name[0].toUpperCase())}</span>`;
+let rankPos = {};
+function avatar(r, size = "", extra = "") {
+  const cls = `avatar ${size} ${extra}`.trim();
+  const initial = `<span class="${cls}" style="background:${r.color}" aria-hidden="true">${esc(r.name[0].toUpperCase())}</span>`;
   if (noAvatar.has(r.name)) return initial;
-  return `<img class="avatar" src="avatars/${encodeURIComponent(r.name)}.jpg" alt="" loading="lazy"
+  return `<img class="${cls}" src="avatars/${encodeURIComponent(r.name)}.jpg" alt="" loading="lazy"
     onerror="noAvatar.add(${esc(JSON.stringify(r.name))}); this.outerHTML = ${esc(JSON.stringify(initial))}">`;
 }
+const avId = (id, size, extra) => avatar({ name: nameOf(id), color: colorOf(id) }, size, extra);
+const isOurs = id => data.players.some(p => p.id === id);
 
 // ---- Sektioner ----
 function renderRanking(list) {
@@ -610,6 +685,9 @@ function renderRanking(list) {
     leads: RANK_KEYS.filter(k => rk[k](r) === 1).map(k => M[k].label),
   })).sort((a, b) => a.avg - b.avg);
   let place = 0;
+  rankPos = {};
+  scored.forEach((x, i) => { if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1; rankPos[x.r.id] = place; });
+  place = 0;
   document.getElementById("rank").innerHTML = scored.length ? scored.map((x, i) => {
     if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1;
     const why = x.leads.length ? `Bäst på ${x.leads.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
@@ -623,7 +701,8 @@ function renderAwards(list) {
     if (!c.length) return "";
     const same = r => r.v[a.key] === c[0].v[a.key] && (a.key !== "betray" || (r.v.teamKills === c[0].v.teamKills && r.v.teamKnocks === c[0].v.teamKnocks));
     const tied = c.filter(same);
-    const top = tied.length > 2 ? `Delad mellan ${tied.length} spelare` : tied.map(r => esc(r.name)).join(" & ");
+    const top = `<span class="avs">${tied.slice(0, 5).map(r => avatar(r, "sm")).join("")}</span>` +
+      (tied.length > 2 ? `Delad mellan ${tied.length}` : tied.map(r => esc(r.name)).join(" & "));
     let val = `${M[a.key].fmt(c[0].v[a.key])} ${a.what}`;
     if (a.key === "betray") {
       if (!c[0].v.betray) return "";
@@ -657,18 +736,98 @@ function renderWeek() {
   };
   const tile = (head, x, fmt) => x && x.v > 0
     ? `<div class="tile gold"><span class="t-head">${head}</span><span class="big">${fmt(x.v)}</span>
-       <span class="t-who">${esc(nameOf(x.id))}</span><span class="t-val">${mapName(x.m.map)}, ${fmtDate(x.m.t)}</span></div>`
+       <span class="t-who">${avId(x.id, "sm")}${esc(nameOf(x.id))}</span><span class="t-val">${mapName(x.m.map)}, ${fmtDate(x.m.t)}</span></div>`
     : `<div class="tile"><span class="t-head">${head}</span><span class="t-val">Inget än den här veckan.</span></div>`;
   const win = all.find(m => Object.values(m.p).some(s => s.place === 1));
   const winTile = win
     ? `<div class="tile gold"><span class="t-head">🍗 Senaste chicken dinner</span><span class="big">${fmtDate(win.t)}</span>
-       <span class="t-who">${Object.entries(win.p).filter(([, s]) => s.place === 1).map(([id]) => esc(nameOf(id))).join(" & ")}</span>
+       <span class="t-who"><span class="avs">${Object.entries(win.p).filter(([, s]) => s.place === 1).map(([id]) => avId(id, "sm")).join("")}</span>${Object.entries(win.p).filter(([, s]) => s.place === 1).map(([id]) => esc(nameOf(id))).join(" & ")}</span>
        <span class="t-val">${mapName(win.map)}, ${sum(Object.values(win.p).filter(s => s.place === 1), s => s.k)} kills${Date.parse(win.t) < since ? " (inte denna vecka)" : ""}</span></div>`
     : `<div class="tile"><span class="t-head">🍗 Senaste chicken dinner</span><span class="t-val">Ingen vinst i historiken än. Dags att ändra på det.</span></div>`;
   el.innerHTML = tile("Flest kills i en match", best(s => s.k), v => v) +
     tile("Mest skada i en match", best(s => s.dmg), v => v) +
     tile("Längsta kill", best(s => s.lk), v => v + " m") + winTile +
     `<div class="tile"><span class="t-head">Matcher denna vecka</span><span class="big">${week.length}</span><span class="t-val">med minst en från gänget</span></div>`;
+}
+
+const RECORDS = [
+  { head: "Flest kills i en match", f: s => s.k, fmt: v => v },
+  { head: "Mest skada i en match", f: s => s.dmg, fmt: v => v },
+  { head: "Längsta kill", f: s => s.lk, fmt: v => v + " m" },
+  { head: "Flest knockar i en match", f: s => s.dbno, fmt: v => v },
+  { head: "Flest assists i en match", f: s => s.a, fmt: v => v },
+  { head: "Flest revives i en match", f: s => s.rev, fmt: v => v },
+  { head: "Längst överlevnad", f: s => s.surv, fmt: time },
+  { head: "Mest skada utan kill", f: s => s.k === 0 ? s.dmg : null, fmt: v => v, shame: true },
+];
+
+function renderRecords() {
+  const ms = filteredMatches();
+  const el = document.getElementById("records");
+  if (!ms.length) { el.innerHTML = empty(NO_HIST); return; }
+  el.innerHTML = RECORDS.map(r => {
+    const all = [];
+    for (const m of ms) for (const [id, s] of Object.entries(m.p)) { const v = r.f(s); if (v != null && v > 0) all.push({ v, id, m }); }
+    all.sort((a, b) => b.v - a.v || a.m.t.localeCompare(b.m.t));
+    if (!all.length) return "";
+    const [top, ...rest] = all.slice(0, 3);
+    return `<div class="tile ${r.shame ? "shame" : "gold"}"><span class="t-head">${r.head}</span>
+      <span class="big">${r.fmt(top.v)}</span>
+      <span class="t-who">${avId(top.id, "sm")}${esc(nameOf(top.id))}</span>
+      <span class="t-val">${mapName(top.m.map)}, ${fmtDate(top.m.t)}</span>
+      ${rest.length ? `<ol class="t-list">${rest.map((x, i) => `<li>${i + 2}. ${avId(x.id, "xs")}${esc(nameOf(x.id))}<b>${r.fmt(x.v)}</b></li>`).join("")}</ol>` : ""}</div>`;
+  }).join("");
+  const first = ms[0]?.t;
+  document.getElementById("recNote").textContent = first
+    ? `Bästa enskilda matcherna sedan ${new Date(first).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}, i valt läge. Listan växer med historiken.`
+    : "Bästa enskilda matcherna genom tiderna, från matchhistoriken.";
+}
+
+function streaksFor(h) {
+  let top = 0, bestTop = 0, dry = 0, worstDry = 0;
+  for (const m of h) {
+    top = m.place <= 10 ? top + 1 : 0; bestTop = Math.max(bestTop, top);
+    dry = m.k === 0 ? dry + 1 : 0; worstDry = Math.max(worstDry, dry);
+  }
+  const lastWin = [...h].reverse().find(m => m.place === 1);
+  const sinceWin = lastWin ? h.length - 1 - h.lastIndexOf(lastWin) : null;
+  return { top, bestTop, dry, worstDry, lastWin, sinceWin, n: h.length };
+}
+
+function renderStreaks(list) {
+  const withH = list.filter(r => r.h.length).map(r => ({ r, s: streaksFor(r.h) }));
+  const t = document.getElementById("streaks"), topEl = document.getElementById("streakTop");
+  if (!withH.length) { t.innerHTML = `<tr><td class="msg">${NO_HIST}</td></tr>`; topEl.innerHTML = ""; return; }
+  const days = w => Math.floor((Date.now() - Date.parse(w.t)) / 864e5);
+  const ago = w => { const d = days(w); return d === 0 ? "idag" : d === 1 ? "igår" : `${d} dagar sedan`; };
+  // Alla som delar högsta värdet
+  const pick = f => { const mx = Math.max(...withH.map(f)); return mx > 0 ? withH.filter(x => f(x) === mx) : []; };
+  const hot = pick(x => x.s.top), cold = pick(x => x.s.dry), best = pick(x => x.s.bestTop), dry = pick(x => x.s.worstDry);
+  const wins = withH.filter(x => x.s.lastWin).sort((a, b) => b.s.lastWin.t.localeCompare(a.s.lastWin.t));
+  const lastWinners = wins.length ? wins.filter(x => x.s.lastWin.t === wins[0].s.lastWin.t) : [];
+  const who = xs => `<span class="avs">${xs.slice(0, 5).map(x => avatar(x.r, "sm")).join("")}</span>` +
+    (xs.length > 2 ? `Delad mellan ${xs.length}` : xs.map(x => esc(x.r.name)).join(" & "));
+  const tile = (cls, head, big, xs, val, small) => `<div class="tile ${cls}"><span class="t-head">${head}</span>
+    <span class="big"${small ? ' style="font-size:1.9rem"' : ""}>${big}</span>
+    <span class="t-who">${who(xs)}</span><span class="t-val">${val}</span></div>`;
+  const n = (v, one, many) => `${v === 1 ? one : many}`;
+  topEl.innerHTML =
+    (hot.length ? tile("gold", "🔥 Hetast just nu", hot[0].s.top, hot, `${n(hot[0].s.top, "match", "matcher")} i rad på topp 10`) : "") +
+    (cold.length ? tile("shame", "🥶 Kallast just nu", cold[0].s.dry, cold, `${n(cold[0].s.dry, "match", "matcher")} i rad utan kill`) : "") +
+    (lastWinners.length ? tile("gold", "🍗 Senaste chicken dinner", ago(wins[0].s.lastWin), lastWinners, mapName(wins[0].s.lastWin.map), true)
+      : `<div class="tile"><span class="t-head">🍗 Senaste chicken dinner</span><span class="t-val">Ingen vinst i historiken än.</span></div>`) +
+    (best.length ? tile("gold", "Längsta topp 10-svit", best[0].s.bestTop, best, "matcher i rad") : "") +
+    (dry.length ? tile("shame", "Längsta torkan", dry[0].s.worstDry, dry, "matcher i rad utan kill") : "");
+  const mx = k => Math.max(...withH.map(x => x.s[k]));
+  t.innerHTML = `<thead><tr><th>Spelare</th><th>Senaste vinst</th><th>Matcher sedan vinst</th><th>Topp 10-svit nu</th><th>Bästa topp 10-svit</th><th>Utan kill nu</th><th>Längsta torka</th></tr></thead><tbody>` +
+    withH.sort((a, b) => b.s.top - a.s.top || a.s.dry - b.s.dry).map(({ r, s }) => `<tr>
+      <td><span class="who">${avatar(r, "xs")}${esc(r.name)}</span></td>
+      <td>${s.lastWin ? ago(s.lastWin) : "–"}</td>
+      <td>${s.lastWin ? s.sinceWin : `${s.n}+`}</td>
+      <td class="${s.top && s.top === mx("top") ? "hot" : ""}">${s.top}</td>
+      <td class="${s.bestTop === mx("bestTop") ? "hot" : ""}">${s.bestTop}</td>
+      <td class="${s.dry && s.dry === mx("dry") ? "cold" : ""}">${s.dry}</td>
+      <td class="${s.worstDry === mx("worstDry") ? "cold" : ""}">${s.worstDry}</td></tr>`).join("") + "</tbody>";
 }
 
 function renderVs(list) {
@@ -691,7 +850,11 @@ function renderVs(list) {
       <span class="bb ${bw ? "win-bar" : ""}"><i style="width:${b / max * 100}%"></i></span>
       <span class="${bw ? "win" : ""}">${M[k].fmt(b)}</span></li>`;
   });
-  el.innerHTML = `<div class="vs-score"><span class="${sa > sb ? "lead" : ""}">${sa}</span> – <span class="${sb > sa ? "lead" : ""}">${sb}</span></div><ul class="vs">${lines.join("")}</ul>`;
+  el.innerHTML = `<div class="vs-score">
+      <span class="side-a">${avatar(A, "lg", sa > sb ? "lead" : "")}${esc(A.name)}</span>
+      <span><span class="${sa > sb ? "lead" : ""}">${sa}</span> – <span class="${sb > sa ? "lead" : ""}">${sb}</span></span>
+      <span class="side-b">${avatar(B, "lg", sb > sa ? "lead" : "")}${esc(B.name)}</span>
+    </div><ul class="vs">${lines.join("")}</ul>`;
 }
 
 function renderForm(list) {
@@ -703,7 +866,7 @@ function renderForm(list) {
       const last = r.h.slice(-10), n = last.length;
       const dmg = sum(last, m => m.dmg) / n, diff = r.v ? dmg - r.v.adr : null;
       const d = diff == null ? "–" : `<span class="${diff >= 0 ? "up" : "down"}">${diff >= 0 ? "+" : "−"}${Math.abs(Math.round(diff))}</span>`;
-      return `<tr><td>${esc(r.name)}</td><td>${n}</td><td>${(sum(last, m => m.k) / Math.max(sum(last, m => m.dead), 1)).toFixed(2)}</td><td>${Math.round(dmg)}</td><td>${d}</td><td>#${(sum(last, m => m.place) / n).toFixed(1)}</td><td>${sum(last, m => m.knocked)}</td></tr>`;
+      return `<tr><td><span class="who">${avatar(r, "xs")}${esc(r.name)}</span></td><td>${n}</td><td>${(sum(last, m => m.k) / Math.max(sum(last, m => m.dead), 1)).toFixed(2)}</td><td>${Math.round(dmg)}</td><td>${d}</td><td>#${(sum(last, m => m.place) / n).toFixed(1)}</td><td>${sum(last, m => m.knocked)}</td></tr>`;
     }).join("") + "</tbody>";
   draw("formChart", {
     type: "line",
@@ -759,7 +922,7 @@ function renderDuos() {
     `<thead><tr><th>Duo</th><th>Matcher ihop</th><th>Snittplacering</th><th>Vinster</th><th>Topp 10</th><th>Kills/match</th><th>Skada/match</th></tr></thead><tbody>` +
     list.map(([k, p], i) => {
       const [a, b] = k.split("|");
-      return `<tr><td${i === 0 ? ' class="best"' : ""}>${esc(nameOf(a))} + ${esc(nameOf(b))}</td><td>${p.n}</td><td>#${(p.place / p.n).toFixed(1)}</td><td>${p.wins}</td><td>${Math.round(p.top10 / p.n * 100)}%</td><td>${(p.kills / p.n).toFixed(1)}</td><td>${Math.round(p.dmg / p.n)}</td></tr>`;
+      return `<tr><td${i === 0 ? ' class="best"' : ""}><span class="who"><span class="avs">${avId(a, "xs")}${avId(b, "xs")}</span>${esc(nameOf(a))} + ${esc(nameOf(b))}</span></td><td>${p.n}</td><td>#${(p.place / p.n).toFixed(1)}</td><td>${p.wins}</td><td>${Math.round(p.top10 / p.n * 100)}%</td><td>${(p.kills / p.n).toFixed(1)}</td><td>${Math.round(p.dmg / p.n)}</td></tr>`;
     }).join("") + "</tbody>";
 }
 
@@ -776,7 +939,7 @@ function renderGuns(list) {
   if (state.gun !== "all" && !list.some(r => r.id === state.gun)) state.gun = "all";
   document.getElementById("gunPicker").innerHTML =
     `<button data-id="all" aria-pressed="${state.gun === "all"}">Hela gänget</button>` +
-    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.gun}">${esc(r.name)}</button>`).join("");
+    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.gun}">${avatar(r, "xs")}${esc(r.name)}</button>`).join("");
 
   const sel = state.gun === "all" ? list : list.filter(r => r.id === state.gun);
   const { kills, dmg } = weaponTotals(sel);
@@ -889,7 +1052,7 @@ function renderGeo(list) {
   if (state.geoPlayer !== "all" && !list.some(r => r.id === state.geoPlayer)) state.geoPlayer = "all";
   document.getElementById("geoPlayer").innerHTML =
     `<button data-id="all" aria-pressed="${state.geoPlayer === "all"}">Hela gänget</button>` +
-    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.geoPlayer}">${esc(r.name)}</button>`).join("");
+    list.map(r => `<button data-id="${r.id}" aria-pressed="${r.id === state.geoPlayer}">${avatar(r, "xs")}${esc(r.name)}</button>`).join("");
 
   const key = state.geoMap, size = MAP_SIZE[key], layer = state.geoLayer;
   const who = state.geoPlayer === "all" ? list : list.filter(r => r.id === state.geoPlayer);
@@ -943,7 +1106,7 @@ function renderLog() {
     return `<details class="match ${best === 1 ? "win" : ""}" data-id="${esc(m.id)}" ${open.has(m.id) ? "open" : ""}>
       <summary>
         <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}</span>
-        <span class="m-who">${ids.map(id => `<span><i style="background:${colorOf(id)}"></i>${esc(nameOf(id))} <small>${m.p[id].k} kills</small></span>`).join("")}</span>
+        <span class="m-who">${ids.map(id => `<span class="who">${avId(id, "xs")}${esc(nameOf(id))} <small>${m.p[id].k} kills</small></span>`).join("")}</span>
         <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${places.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
         <span class="m-kills"><b>${kills}</b>kills<br>${kfmt(dmg)} skada</span>
       </summary>
@@ -965,7 +1128,7 @@ function fillMatch(det) {
   body.innerHTML = `<div class="scroll"><table>
     <thead><tr><th>Spelare</th><th>Plac.</th><th>Kills</th><th>Assists</th><th>Knockar</th><th>Skada</th><th>Revives</th><th>Överlevde</th><th>Vapen</th><th>Dödad av</th></tr></thead>
     <tbody>${ids.map(id => { const s = m.p[id]; return `<tr>
-      <td><span style="color:${colorOf(id)}">●</span> ${esc(nameOf(id))}</td><td>#${s.place}</td><td>${s.k}</td><td>${s.a}</td><td>${s.dbno}</td>
+      <td><span class="who">${avId(id, "xs")}${esc(nameOf(id))}</span></td><td>#${s.place}</td><td>${s.k}</td><td>${s.a}</td><td>${s.dbno}</td>
       <td>${s.dmg}</td><td>${s.rev}</td><td>${time(s.surv)}</td><td>${favWeapon(s)}</td><td>${death(s)}</td></tr>`; }).join("")}</tbody>
   </table></div>
   ${MAP_SIZE[m.map] ? `<div class="m-mapwrap"><div class="m-map"><canvas></canvas></div><p class="m-legend">● landning &nbsp; ✕ dödsfall &nbsp; · kill &nbsp; (inzoomat på matchens område)</p></div>` : ""}`;
@@ -1023,7 +1186,7 @@ function renderNemesis(list) {
     if (!deaths) return "";
     const [top, n] = Object.entries(by).sort((a, b) => b[1] - a[1])[0] || [];
     const friendly = top && ours.has(top) ? " (lagkompis!)" : "";
-    return `<div class="tile shame"><span class="t-head">${esc(r.name)}</span>
+    return `<div class="tile shame"><span class="t-head" style="display:flex;align-items:center;gap:.45rem">${avatar(r, "xs")}${esc(r.name)}</span>
       <span class="t-who">${top ? esc(top) + friendly : "Ingen än"}</span>
       <span class="t-val">${top ? `dödade ${esc(r.name)} ${n} ${n === 1 ? "gång" : "gånger"}` : ""}${bots ? `${top ? ". " : ""}Dödad av bottar ${bots} ${bots === 1 ? "gång" : "gånger"}` : ""}</span></div>`;
   }).join("");
@@ -1045,8 +1208,13 @@ function renderModes() {
 function renderCard(list) {
   if (!state.player || !list.some(r => r.id === state.player)) state.player = list[0]?.id;
   document.getElementById("picker").innerHTML = list.map(r =>
-    `<button data-id="${r.id}" aria-pressed="${r.id === state.player}">${esc(r.name)}</button>`).join("");
+    `<button data-id="${r.id}" aria-pressed="${r.id === state.player}">${avatar(r, "xs")}${esc(r.name)}</button>`).join("");
   const r = list.find(x => x.id === state.player), card = document.getElementById("card");
+  const head = document.getElementById("cardHead");
+  if (r) {
+    const rk = rankPos[r.id] || 0;
+    head.innerHTML = `${avatar(r, "xl")}<div><b>${esc(r.name)}</b><span>${rk ? `#${rk} i totalrankingen` : ""}${r.v ? `${rk ? " · " : ""}${r.v.rounds} matcher` : ""}</span></div>`;
+  } else head.innerHTML = "";
   if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
   const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct", "teamKills", "teamKnocks"];
@@ -1085,6 +1253,8 @@ function render() {
   renderRanking(list);
   renderAwards(list);
   renderWeek();
+  renderRecords();
+  renderStreaks(list);
   renderVs(list);
   document.getElementById("combat").innerHTML = COMBAT.map(k => duel(list, k)).join("") || empty("Inga matcher i det här läget.");
   document.getElementById("survival").innerHTML = SURVIVAL.map(k => duel(list, k)).join("");
@@ -1187,27 +1357,73 @@ document.getElementById("gunPicker").addEventListener("click", e => {
 });
 
 // ---- Meny ----
+const TABS = [
+  { id: "oversikt", label: "Översikt", secs: ["s-rank", "s-awards", "s-week", "s-records", "s-streaks"] },
+  { id: "spelare", label: "Spelare", secs: ["s-vs", "s-card", "s-combat", "s-surv", "s-shame", "s-form", "s-trend", "s-all"] },
+  { id: "matcher", label: "Matcher", secs: ["s-log", "s-duos", "s-nemesis", "s-modes"] },
+  { id: "vapen-kartor", label: "Vapen och kartor", secs: ["s-guns", "s-maps", "s-geo"] },
+];
+let setTab;
 (function buildNav() {
-  const secs = [...document.querySelectorAll("main section[id]")];
-  const links = secs.map(s => `<a href="#${s.id}">${esc(s.dataset.nav || s.querySelector("h2").textContent)}</a>`).join("");
-  document.getElementById("sideNav").innerHTML = links;
-  document.getElementById("topNav").innerHTML = links;
-  const all = document.querySelectorAll("#sideNav a, #topNav a");
-  const top = document.getElementById("topNav");
+  const main = document.querySelector("main"), foot = document.getElementById("foot");
+  const tabOf = {};
+  for (const t of TABS) for (const id of t.secs) { const s = document.getElementById(id); if (s) { main.insertBefore(s, foot); tabOf[id] = t.id; } }
+  const side = document.getElementById("sideNav"), top = document.getElementById("topNav"), bar = document.querySelector(".bar-top");
+  document.getElementById("tabs").innerHTML = TABS.map(t =>
+    `<button role="tab" id="tab-${t.id}" data-tab="${t.id}" aria-selected="false">${t.label}</button>`).join("");
+  const label = s => esc(s.dataset.nav || s.querySelector("h2").textContent);
+  let current = null, obs;
   const mark = id => {
-    all.forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + id));
+    document.querySelectorAll("#sideNav a, #topNav a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + id));
     const t = top.querySelector(`a[href="#${id}"]`);
     if (t && top.offsetParent) top.scrollTo({ left: t.offsetLeft - top.clientWidth / 2 + t.offsetWidth / 2, behavior: "smooth" });
   };
-  const pad = () => {
-    const bar = document.querySelector(".bar-top");
-    document.documentElement.style.scrollPaddingTop = bar.offsetHeight + 16 + "px";
-    document.querySelector(".side").style.paddingTop = bar.offsetTop + "px";
+  setTab = (tab, { scroll = true, hash = true } = {}) => {
+    const t = TABS.find(x => x.id === tab) || TABS[0];
+    const changed = current !== t.id; current = t.id;
+    document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t.id));
+    document.querySelectorAll("main section[id]").forEach(s => s.hidden = tabOf[s.id] !== t.id);
+    const secs = t.secs.map(id => document.getElementById(id)).filter(Boolean);
+    const links = secs.map(s => `<a href="#${s.id}">${label(s)}</a>`).join("");
+    side.innerHTML = links; top.innerHTML = links;
+    obs?.disconnect();
+    obs = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && mark(e.target.id)), { rootMargin: "-35% 0px -60% 0px" });
+    secs.forEach(s => obs.observe(s));
+    mark(secs[0].id);
+    if (hash) window.history.replaceState(null, "", "#" + t.id);
+    const home = document.getElementById("barAnchor").getBoundingClientRect().bottom + scrollY;
+    if (changed && scroll && scrollY > home) scrollTo({ top: home });
+    if (changed && data) { if (t.id === "vapen-kartor") renderGeo(rows()); }
+    pad();
   };
-  pad(); addEventListener("resize", pad); addEventListener("load", pad);
-  const obs = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && mark(e.target.id)), { rootMargin: "-35% 0px -60% 0px" });
-  secs.forEach(s => obs.observe(s));
-  mark(secs[0].id);
+  const pad = () => {
+    const tabsH = document.getElementById("tabs").offsetHeight;
+    document.documentElement.style.setProperty("--tabs-h", tabsH + "px");
+    const barSticky = getComputedStyle(bar).position === "sticky";
+    document.documentElement.style.scrollPaddingTop = tabsH + (barSticky ? bar.offsetHeight : 0) + 16 + "px";
+    const a = document.getElementById("barAnchor");
+    document.querySelector(".side").style.paddingTop = a.offsetTop + a.offsetHeight + "px";
+  };
+  addEventListener("resize", pad); addEventListener("load", pad);
+  document.getElementById("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.tab); });
+  document.getElementById("tabs").addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const i = TABS.findIndex(t => t.id === current), n = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    setTab(n.id); document.getElementById("tab-" + n.id).focus();
+  });
+  // Länkar till en sektion (#s-...) byter till rätt flik först
+  const fromHash = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (tabOf[id]) { setTab(tabOf[id], { scroll: false, hash: false }); document.getElementById(id).scrollIntoView(); }
+    else setTab(TABS.some(t => t.id === id) ? id : TABS[0].id, { scroll: false, hash: !!id });
+  };
+  addEventListener("hashchange", fromHash);
+  document.addEventListener("click", e => {
+    const a = e.target.closest('a[href^="#s-"]'); if (!a) return;
+    const id = a.getAttribute("href").slice(1);
+    if (tabOf[id] && tabOf[id] !== current) { e.preventDefault(); setTab(tabOf[id], { scroll: false }); document.getElementById(id).scrollIntoView(); }
+  });
+  fromHash();
 })();
 document.getElementById("vsA").addEventListener("change", e => {
   if (e.target.value === state.b) state.b = state.a;
