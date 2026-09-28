@@ -739,6 +739,31 @@ function renderRanking(list) {
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
 }
 
+// Lyckoamuletten / Sänket: lagets bästa placering i matcher med minst två från gänget,
+// jämfört mellan matcher där spelaren var med och matcher där hen inte var det.
+// Placeringen räknas om till andel av lagen (topp X %) så att duo (50 lag) och squad (25 lag) går att jämföra.
+const LUCK_MIN = 15; // minst så här många matcher både med och utan, så att slumpen inte avgör
+function luckTiles(list) {
+  const ms = filteredMatches().filter(m => Object.keys(m.p).length >= 2);
+  const TEAMS = { solo: 100, duo: 50, squad: 25 };
+  const teamPlace = m => Math.min(...Object.values(m.p).map(s => s.place)) / (TEAMS[m.mode.split("-")[0]] || 25);
+  const res = list.map(r => {
+    const w = ms.filter(m => m.p[r.id]), wo = ms.filter(m => !m.p[r.id]);
+    if (w.length < LUCK_MIN || wo.length < LUCK_MIN) return null;
+    const a = sum(w, teamPlace) / w.length, b = sum(wo, teamPlace) / wo.length;
+    return { r, with: a, without: b, diff: b - a, nw: w.length, nwo: wo.length };
+  }).filter(Boolean);
+  if (res.length < 2) return "";
+  const f = v => Math.max(0, Math.round((1 - v) * 100)); // andel av lagen man slår
+  const tile = (x, cls, icon, name) => `<div class="tile ${cls}"><span class="t-head">${icon} ${name}</span>
+    <span class="t-who">${avatar(x.r, "sm")}${esc(x.r.name)}</span>
+    <span class="t-val">Med ${esc(x.r.name)} slår laget i snitt ${f(x.with)} % av de andra lagen, utan ${f(x.without)} % (${x.nw} mot ${x.nwo} matcher).</span></div>`;
+  const sorted = [...res].sort((a, b) => b.diff - a.diff);
+  const best = sorted[0], worst = sorted.at(-1);
+  return (best.diff > 0 ? tile(best, "gold", "🍀", "Lyckoamuletten") : "") +
+         (worst.diff < 0 && worst !== best ? tile(worst, "shame", "🪨", "Sänket") : "");
+}
+
 function renderAwards(list) {
   const tiles = AWARDS.map(a => {
     const c = list.filter(r => has(r, a.key)).sort((x, y) => y.v[a.key] - x.v[a.key]);
@@ -755,13 +780,14 @@ function renderAwards(list) {
       const tie = tied.length > 1 ? "Var och en har " : "";
       val = `${tie}${x.teamKills} dödade lagkompisar ${per}` +
         (x.teamKnocks != null ? ` och ${x.teamKnocks} knockade sedan ${fmtDate(Object.values(history.matches).map(m => m.t).sort()[0])}` : "") +
-        (fav ? `. Oftast drabbad: ${esc(fav[0])}` : "");
+"";
+      if (fav) val = val.replace(/\.$/, "") + `. Oftast drabbad: ${esc(fav[0])}`;
       if (!val.endsWith(".")) val += ".";
     }
     return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
       <span class="t-who">${top}</span><span class="t-val">${val}</span></div>`;
   }).join("");
-  document.getElementById("awards").innerHTML = tiles || empty("Inga utmärkelser i det här läget.");
+  document.getElementById("awards").innerHTML = (tiles + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
 }
 
 function renderWeek() {
