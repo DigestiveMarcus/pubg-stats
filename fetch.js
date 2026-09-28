@@ -12,7 +12,7 @@ const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
 const MAX_NEW_MATCHES = 120;  // per körning, så första körningen inte tar evigheter
-const SCHEMA = 4;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const SCHEMA = 5;             // höj när nya fält läggs till, så sparade matcher hämtas om
 const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
 
@@ -104,9 +104,12 @@ function parseTelemetry(tel, ours) {
       const k = e.killer?.accountId, v = e.victim?.accountId;
       if (ours.has(v)) get(v).dl = pos(e.victim.location);
       if (ours.has(v) && k && k !== v) get(v).kb = { n: e.killer.name, bot: k.startsWith("ai.") };
-      if (!ours.has(k) || v === k) continue;
+      // Teamkill: PUBG räknar den som gjorde slutskottet (finisher) eller fick killen (killer),
+      // t.ex. när man skjuter ihjäl en lagkompis som redan är knockad av en fiende.
+      const traitor = [e.finisher, e.killer].find(x => x && ours.has(x.accountId) && x.accountId !== v && sameTeam(x, e.victim));
+      if (traitor) { const t = get(traitor.accountId); t.tkl++; t.tkv[e.victim.name] = (t.tkv[e.victim.name] || 0) + 1; }
+      if (!ours.has(k) || v === k || sameTeam(e.killer, e.victim)) continue;
       const me = get(k);
-      if (sameTeam(e.killer, e.victim)) { me.tkl++; me.tkv[e.victim.name] = (me.tkv[e.victim.name] || 0) + 1; continue; }
       me.tk++;
       const kp = pos(e.victim?.location); if (kp) me.kl.push(kp);
       if (String(v).startsWith("ai.")) me.bk++;

@@ -1315,6 +1315,9 @@ function renderTable(list) {
 }
 
 function render() {
+  const histSince = Object.values(history.matches).map(m => m.t).sort()[0];
+  M.teamKills.label = `Dödat lagkompisar (${state.scope === "season" ? "säsong" : "totalt"})`;
+  M.teamKnocks.label = histSince ? `Knockat lagkompisar (sedan ${fmtDate(histSince)})` : "Knockat lagkompisar";
   const list = rows();
   renderRanking(list);
   renderAwards(list);
