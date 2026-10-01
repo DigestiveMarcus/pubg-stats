@@ -771,8 +771,7 @@ function renderRanking(list) {
     const z = parts.get(r.id);
     const lab = k => { const l = M[k].label; return /^[A-Z/]+$/.test(l) ? l : l.toLowerCase(); };
     const top = Object.keys(z).filter(k => played.every(o => o === r || (o.v[k] ?? -Infinity) < r.v[k]));
-    const good = Object.entries(z).filter(([k, v]) => v >= 0.75 && !top.includes(k)).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
-    const strong = [top.length ? `Bäst i ${top.map(lab).join(", ")}` : "", good.length ? `${top.length ? "bra på" : "Bra på"} ${good.map(lab).join(", ")}` : ""].filter(Boolean).join(" · ");
+    const strong = top.length ? `Bäst i ${top.map(lab).join(", ")}` : "";
     return { r, pts: 50 + 10 * score.get(r.id), strong };
   }).sort((a, b) => b.pts - a.pts);
   const shown = x => Math.round(x.pts);
