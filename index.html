@@ -375,7 +375,7 @@
 
   <section id="s-rank" data-nav="Ranking">
     <h2>Totalranking</h2>
-    <p class="note">Poängen visar hur långt över eller under gängets snitt man ligger, där 50 är snittet. Stora skillnader väger mer än små, och den som spelat få matcher dras mot snittet tills hen spelat fler. Vikter: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %.</p>
+    <p class="note">Poängen visar hur långt över eller under gängets snitt man ligger, där 50 är snittet. Stora skillnader väger mer än små, och den som spelat få matcher dras mot snittet tills han spelat fler. Vikter: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
   </section>
 
@@ -775,7 +775,7 @@ function renderRanking(list) {
 }
 
 // Lyckoamuletten / Sänket: hur ofta laget når topp 10 (topp 20 i duo, topp 40 i solo, alltså bästa 40 % av lagen)
-// i matcher med minst två från gänget, jämfört mellan matcher där spelaren var med och där hen inte var det.
+// i matcher med minst två från gänget, jämfört mellan matcher där spelaren var med och där han inte var det.
 const LUCK_MIN = 15; // minst så här många matcher både med och utan, så att slumpen inte avgör
 function luckTiles(list) {
   const ms = filteredMatches().filter(m => Object.keys(m.p).length >= 2);
