@@ -375,7 +375,7 @@
 
   <section id="s-rank" data-nav="Ranking">
     <h2>Totalranking</h2>
-    <p class="note">Snittplacering i sju kategorier: K/D, KDA, skada per match, vinster, topp 10, headshots och längsta kill.</p>
+    <p class="note">Viktat snitt av placeringen i gänget per kategori: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %. Lägst snitt vinner.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
   </section>
 
@@ -578,6 +578,7 @@ const M = {
   top10:   { label: "Topp 10",           fmt: pct(0) },
   surv:    { label: "Överlevnad/match",  fmt: time },
   revives: { label: "Revives",           fmt: v => v },
+  revPm:   { label: "Revives/match",     fmt: v => v.toFixed(2) },
   heals:   { label: "Heals+boosts/match", fmt: v => v.toFixed(1) },
   dist:    { label: "Distans/match",     fmt: v => v.toFixed(1) + " km" },
   rounds:  { label: "Matcher",           fmt: v => v },
@@ -590,9 +591,11 @@ const M = {
   teamKnocks: { label: "Knockat lagkompisar", fmt: v => v },
   betray:  { label: "Förräderier",       fmt: v => v },
 };
-const RANK_KEYS = ["kd", "kda", "adr", "win", "top10", "hs", "long"];
+// Totalrankingen: viktat snitt av placeringen i gänget per kategori (1 = bäst). Vikterna summerar till 1.
+const RANK_WEIGHTS = { kd: 0.20, adr: 0.20, top10: 0.20, win: 0.15, knocks: 0.10, revPm: 0.10, hs: 0.05 };
+const RANK_KEYS = Object.keys(RANK_WEIGHTS);
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
-const SURVIVAL = ["win", "top10", "surv", "revives", "heals", "dist", "rounds"];
+const SURVIVAL = ["win", "top10", "surv", "revPm", "revives", "heals", "dist", "rounds"];
 const SHAME = ["deaths", "knocked", "knockedPm", "botPct", "firstPct", "teamKills", "teamKnocks"];
 const TABLE = ["rounds", ...COMBAT.filter(k => k !== "kills"), "kills", ...SURVIVAL.filter(k => k !== "rounds"), ...SHAME];
 const VS_KEYS = ["kd", "kda", "adr", "kpm", "hs", "long", "win", "top10", "surv", "revives", "knockedPm", "botPct", "firstPct", "teamKills"];
@@ -663,7 +666,7 @@ function derive(s, h) {
     adr: s.damageDealt / r, kpm: s.kills / r, knocks: s.dBNOs / r,
     hs: s.kills ? s.headshotKills / s.kills : 0, long: s.longestKill,
     win: s.wins / r, top10: s.top10s / r, surv: s.timeSurvived / r,
-    revives: s.revives, heals: (s.heals + s.boosts) / r,
+    revives: s.revives, revPm: s.revives / r, heals: (s.heals + s.boosts) / r,
     dist: (s.walkDistance + s.rideDistance + s.swimDistance) / r / 1000,
     teamKills: s.teamKills ?? 0,
   };
@@ -730,7 +733,7 @@ function renderRanking(list) {
   const played = list.filter(r => r.v);
   const rk = Object.fromEntries(RANK_KEYS.map(k => [k, ranks(played, k)]));
   const scored = played.map(r => ({
-    r, avg: sum(RANK_KEYS, k => rk[k](r)) / RANK_KEYS.length,
+    r, avg: sum(RANK_KEYS, k => rk[k](r) * RANK_WEIGHTS[k]),
     leads: RANK_KEYS.filter(k => rk[k](r) === 1).map(k => M[k].label),
   })).sort((a, b) => a.avg - b.avg);
   let place = 0;
@@ -740,7 +743,7 @@ function renderRanking(list) {
   document.getElementById("rank").innerHTML = scored.length ? scored.map((x, i) => {
     if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1;
     const why = x.leads.length ? `Bäst på ${x.leads.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
-    return `<li><span class="pos">${place}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg">snitt ${x.avg.toFixed(1)}</span></li>`;
+    return `<li><span class="pos">${place}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="Viktat snitt av placeringen i varje kategori">snitt ${x.avg.toFixed(2).replace(".", ",")}</span></li>`;
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
 }
 
