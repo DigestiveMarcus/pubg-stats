@@ -375,7 +375,7 @@
 
   <section id="s-rank" data-nav="Ranking">
     <h2>Totalranking</h2>
-    <p class="note">Viktat snitt av placeringen i gänget per kategori: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %. Lägst snitt vinner.</p>
+    <p class="note">Poängen visar hur långt över eller under gängets snitt man ligger, där 50 är snittet. Stora skillnader väger mer än små, och den som spelat få matcher dras mot snittet tills hen spelat fler. Vikter: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
   </section>
 
@@ -591,7 +591,7 @@ const M = {
   teamKnocks: { label: "Knockat lagkompisar", fmt: v => v },
   betray:  { label: "Förräderier",       fmt: v => v },
 };
-// Totalrankingen: viktat snitt av placeringen i gänget per kategori (1 = bäst). Vikterna summerar till 1.
+// Totalrankingen: vikter per kategori, summerar till 1 (se rankingScores).
 const RANK_WEIGHTS = { kd: 0.20, adr: 0.20, top10: 0.20, win: 0.15, knocks: 0.10, revPm: 0.10, hs: 0.05 };
 const RANK_KEYS = Object.keys(RANK_WEIGHTS);
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
@@ -663,10 +663,11 @@ function derive(s, h) {
     rounds: r, kills: s.kills, wins: s.wins, top10s: s.top10s, deaths,
     kd: s.kills / Math.max(deaths, 1),
     kda: (s.kills + s.assists) / Math.max(deaths, 1),
-    adr: s.damageDealt / r, kpm: s.kills / r, knocks: s.dBNOs / r,
+    adr: s.damageDealt / r, kpm: s.kills / r, teamRounds: s.teamRounds ?? r,
+    knocks: (s.teamRounds ?? r) ? s.dBNOs / (s.teamRounds ?? r) : null,
     hs: s.kills ? s.headshotKills / s.kills : 0, long: s.longestKill,
     win: s.wins / r, top10: s.top10s / r, surv: s.timeSurvived / r,
-    revives: s.revives, revPm: s.revives / r, heals: (s.heals + s.boosts) / r,
+    revives: s.revives, revPm: (s.teamRounds ?? r) ? s.revives / (s.teamRounds ?? r) : null, heals: (s.heals + s.boosts) / r,
     dist: (s.walkDistance + s.rideDistance + s.swimDistance) / r / 1000,
     teamKills: s.teamKills ?? 0,
   };
@@ -690,7 +691,10 @@ function rows() {
   const fo = firstOut(ms);
   return data.players.map((p, i) => {
     const h = playerHistory(p.id, ms);
-    const v = derive(sumStats(modeKeys().map(k => set[k]?.[p.id])), h);
+    const s = sumStats(modeKeys().map(k => set[k]?.[p.id]));
+    // Knockar och revives finns inte i solo, så de räknas bara per duo-/squadmatch
+    s.teamRounds = sum(modeKeys().filter(k => !k.startsWith("solo")), k => set[k]?.[p.id]?.roundsPlayed || 0);
+    const v = derive(s, h);
     if (v && fo.shared[p.id]) v.firstPct = (fo.first[p.id] || 0) / fo.shared[p.id];
     return { id: p.id, name: p.name, color: COLORS[i % COLORS.length], h, v };
   });
@@ -729,21 +733,44 @@ const avId = (id, size, extra) => avatar({ name: nameOf(id), color: colorOf(id) 
 const isOurs = id => data.players.some(p => p.id === id);
 
 // ---- Sektioner ----
+// Rättvis ranking:
+// 1. Spelare med få matcher dras mot gängets snitt (som om de hade spelat RANK_PRIOR extra snittmatcher),
+//    så att några turmatcher inte räcker till toppen.
+// 2. Varje kategori räknas om till hur många standardavvikelser man ligger över eller under gänget,
+//    så att stora skillnader väger mer än små.
+// 3. Viktad summa, visad som poäng där 50 = gängets snitt.
+const RANK_PRIOR = 20;
+function rankingScores(played) {
+  const score = new Map(played.map(r => [r.id, 0]));
+  const parts = new Map(played.map(r => [r.id, {}]));
+  for (const [k, w] of Object.entries(RANK_WEIGHTS)) {
+    const n = r => (k === "knocks" || k === "revPm") ? r.v.teamRounds : r.v.rounds; // antal matcher måttet bygger på
+    const have = played.filter(r => r.v[k] != null && n(r) > 0);
+    if (have.length < 2) continue;
+    const mean = sum(have, r => r.v[k] * n(r)) / sum(have, n);
+    const sh = have.map(r => (r.v[k] * n(r) + mean * RANK_PRIOR) / (n(r) + RANK_PRIOR));
+    const mu = sh.reduce((a, b) => a + b, 0) / sh.length;
+    const sd = Math.sqrt(sh.reduce((a, b) => a + (b - mu) ** 2, 0) / sh.length) || 1;
+    have.forEach((r, i) => { const z = (sh[i] - mu) / sd; score.set(r.id, score.get(r.id) + w * z); parts.get(r.id)[k] = z; });
+  }
+  return { score, parts };
+}
+
 function renderRanking(list) {
   const played = list.filter(r => r.v);
-  const rk = Object.fromEntries(RANK_KEYS.map(k => [k, ranks(played, k)]));
-  const scored = played.map(r => ({
-    r, avg: sum(RANK_KEYS, k => rk[k](r) * RANK_WEIGHTS[k]),
-    leads: RANK_KEYS.filter(k => rk[k](r) === 1).map(k => M[k].label),
-  })).sort((a, b) => a.avg - b.avg);
+  const { score, parts } = rankingScores(played);
+  const scored = played.map(r => {
+    const z = parts.get(r.id);
+    const strong = Object.entries(z).filter(([, v]) => v >= 0.75).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => M[k].label);
+    return { r, pts: 50 + 10 * score.get(r.id), strong };
+  }).sort((a, b) => b.pts - a.pts);
+  const shown = x => Math.round(x.pts);
   let place = 0;
   rankPos = {};
-  scored.forEach((x, i) => { if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1; rankPos[x.r.id] = place; });
-  place = 0;
-  document.getElementById("rank").innerHTML = scored.length ? scored.map((x, i) => {
-    if (i === 0 || x.avg !== scored[i - 1].avg) place = i + 1;
-    const why = x.leads.length ? `Bäst på ${x.leads.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
-    return `<li><span class="pos">${place}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="Viktat snitt av placeringen i varje kategori">snitt ${x.avg.toFixed(2).replace(".", ",")}</span></li>`;
+  scored.forEach((x, i) => { if (i === 0 || shown(x) !== shown(scored[i - 1])) place = i + 1; rankPos[x.r.id] = place; });
+  document.getElementById("rank").innerHTML = scored.length ? scored.map(x => {
+    const why = x.strong.length ? `Starkast i ${x.strong.map(l => /^[A-Z/]+$/.test(l) ? l : l.toLowerCase()).join(", ")}` : "";
+    return `<li><span class="pos">${rankPos[x.r.id]}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="50 = gängets snitt">${shown(x)} poäng</span></li>`;
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
 }
 
