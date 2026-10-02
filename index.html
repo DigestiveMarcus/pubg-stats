@@ -398,9 +398,9 @@
 
   <section id="s-streaks" data-nav="Svit och torka">
     <h2>Svit och torka</h2>
-    <p class="note">Pågående och längsta sviter, från matchhistoriken. Topp 10-svit = matcher i rad på topp 10. Torka = matcher i rad utan kill.</p>
+    <p class="note">Pågående och längsta sviter, från matchhistoriken. Topp 10-svit = matcher i rad på topp 10. Torka = matcher i rad utan kill. Vinster i rad = chicken dinners i rad.</p>
     <div class="tiles streak-top" id="streakTop"></div>
-    <div class="scroll"><table id="streaks" style="min-width:44rem"></table></div>
+    <div class="scroll"><table id="streaks" style="min-width:56rem"></table></div>
   </section>
 
   <section id="s-vs">
@@ -925,14 +925,15 @@ function renderRecords() {
 }
 
 function streaksFor(h) {
-  let top = 0, bestTop = 0, dry = 0, worstDry = 0;
+  let top = 0, bestTop = 0, dry = 0, worstDry = 0, wins = 0, bestWins = 0;
   for (const m of h) {
+    wins = m.place === 1 ? wins + 1 : 0; bestWins = Math.max(bestWins, wins);
     top = m.place <= 10 ? top + 1 : 0; bestTop = Math.max(bestTop, top);
     dry = m.k === 0 ? dry + 1 : 0; worstDry = Math.max(worstDry, dry);
   }
   const lastWin = [...h].reverse().find(m => m.place === 1);
   const sinceWin = lastWin ? h.length - 1 - h.lastIndexOf(lastWin) : null;
-  return { top, bestTop, dry, worstDry, lastWin, sinceWin, n: h.length };
+  return { top, bestTop, dry, worstDry, wins, bestWins, lastWin, sinceWin, n: h.length };
 }
 
 function renderStreaks(list) {
@@ -944,6 +945,7 @@ function renderStreaks(list) {
   // Alla som delar högsta värdet
   const pick = f => { const mx = Math.max(...withH.map(f)); return mx > 0 ? withH.filter(x => f(x) === mx) : []; };
   const hot = pick(x => x.s.top), cold = pick(x => x.s.dry), best = pick(x => x.s.bestTop), dry = pick(x => x.s.worstDry);
+  const winRun = pick(x => x.s.bestWins), winNow = pick(x => x.s.wins);
   const wins = withH.filter(x => x.s.lastWin).sort((a, b) => b.s.lastWin.t.localeCompare(a.s.lastWin.t));
   const lastWinners = wins.length ? wins.filter(x => x.s.lastWin.t === wins[0].s.lastWin.t) : [];
   const who = xs => `<span class="avs">${xs.slice(0, 5).map(x => avatar(x.r, "sm")).join("")}</span>` +
@@ -958,9 +960,11 @@ function renderStreaks(list) {
     (lastWinners.length ? tile("gold", "🍗 Senaste chicken dinner", ago(wins[0].s.lastWin), lastWinners, mapName(wins[0].s.lastWin.map), true)
       : `<div class="tile"><span class="t-head">🍗 Senaste chicken dinner</span><span class="t-val">Ingen vinst i historiken än.</span></div>`) +
     (best.length ? tile("gold", "Längsta topp 10-svit", best[0].s.bestTop, best, "matcher i rad") : "") +
-    (dry.length ? tile("shame", "Längsta torkan", dry[0].s.worstDry, dry, "matcher i rad utan kill") : "");
+    (dry.length ? tile("shame", "Längsta torkan", dry[0].s.worstDry, dry, "matcher i rad utan kill") : "") +
+    (winRun.length ? tile("gold", "🍗 Flest vinster i rad", winRun[0].s.bestWins, winRun,
+      `${n(winRun[0].s.bestWins, "vinst", "vinster")} i rad${winNow.length && winNow[0].s.wins > 1 ? ` · just nu: ${winNow.map(x => esc(x.r.name)).join(" & ")} på ${winNow[0].s.wins} i rad` : ""}`) : "");
   const mx = k => Math.max(...withH.map(x => x.s[k]));
-  t.innerHTML = `<thead><tr><th>Spelare</th><th>Senaste vinst</th><th>Matcher sedan vinst</th><th>Topp 10-svit nu</th><th>Bästa topp 10-svit</th><th>Utan kill nu</th><th>Längsta torka</th></tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th>Spelare</th><th>Senaste vinst</th><th>Matcher sedan vinst</th><th>Topp 10-svit nu</th><th>Bästa topp 10-svit</th><th>Utan kill nu</th><th>Längsta torka</th><th>Vinster i rad nu</th><th>Flest vinster i rad</th></tr></thead><tbody>` +
     withH.sort((a, b) => b.s.top - a.s.top || a.s.dry - b.s.dry).map(({ r, s }) => `<tr>
       <td><span class="who">${avatar(r, "xs")}${esc(r.name)}</span></td>
       <td>${s.lastWin ? ago(s.lastWin) : "–"}</td>
@@ -968,7 +972,9 @@ function renderStreaks(list) {
       <td class="${s.top && s.top === mx("top") ? "hot" : ""}">${s.top}</td>
       <td class="${s.bestTop === mx("bestTop") ? "hot" : ""}">${s.bestTop}</td>
       <td class="${s.dry && s.dry === mx("dry") ? "cold" : ""}">${s.dry}</td>
-      <td class="${s.worstDry === mx("worstDry") ? "cold" : ""}">${s.worstDry}</td></tr>`).join("") + "</tbody>";
+      <td class="${s.worstDry === mx("worstDry") ? "cold" : ""}">${s.worstDry}</td>
+      <td class="${s.wins && s.wins === mx("wins") ? "hot" : ""}">${s.wins}</td>
+      <td class="${s.bestWins && s.bestWins === mx("bestWins") ? "hot" : ""}">${s.bestWins}</td></tr>`).join("") + "</tbody>";
 }
 
 function renderVs(list) {
