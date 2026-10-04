@@ -195,7 +195,11 @@ async function updateHistory(players) {
 
   const last = {};
   for (const m of Object.values(hist.matches)) for (const pid of Object.keys(m.p)) if (!last[pid] || m.t > last[pid]) last[pid] = m.t;
-  return Object.fromEntries(players.map(pl => [pl.id, { online: fresh.has(pl.id), last: last[pl.id] || null }]));
+  // Online = senaste matchen startade för mindre än ONLINE_MIN minuter sedan (en match tar ~25–30 min,
+  // så den som kör match efter match står kvar som online mellan matcherna), eller en ny match i den här körningen.
+  const ONLINE_MIN = 70;
+  const recent = t => t && Date.now() - Date.parse(t) < ONLINE_MIN * 6e4;
+  return Object.fromEntries(players.map(pl => [pl.id, { online: fresh.has(pl.id) || recent(last[pl.id]), last: last[pl.id] || null }]));
 }
 
 (async () => {
