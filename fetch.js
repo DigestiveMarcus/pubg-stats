@@ -193,13 +193,18 @@ async function updateHistory(players) {
   fs.writeFileSync("history.json", JSON.stringify(hist));
   console.log(`History: +${added} nya matcher, totalt ${Object.keys(hist.matches).length}`);
 
-  const last = {};
-  for (const m of Object.values(hist.matches)) for (const pid of Object.keys(m.p)) if (!last[pid] || m.t > last[pid]) last[pid] = m.t;
-  // Online = senaste matchen startade för mindre än ONLINE_MIN minuter sedan (en match tar ~25–30 min,
-  // så den som kör match efter match står kvar som online mellan matcherna), eller en ny match i den här körningen.
-  const ONLINE_MIN = 70;
+  // Senaste match per spelare: start (t) och när spelaren var klar (t + tid i matchen, dvs. när han dog eller vann)
+  const last = {}, lastEnd = {};
+  for (const m of Object.values(hist.matches)) for (const [pid, s] of Object.entries(m.p)) {
+    const end = new Date(Date.parse(m.t) + (s.surv || 0) * 1000).toISOString();
+    if (!last[pid] || m.t > last[pid]) last[pid] = m.t;
+    if (!lastEnd[pid] || end > lastEnd[pid]) lastEnd[pid] = end;
+  }
+  // Online = spelaren blev klar med en match för mindre än ONLINE_MIN minuter sedan.
+  // Mellan två matcher går det sällan mer än så, så den som kör vidare står kvar som online.
+  const ONLINE_MIN = 25;
   const recent = t => t && Date.now() - Date.parse(t) < ONLINE_MIN * 6e4;
-  return Object.fromEntries(players.map(pl => [pl.id, { online: fresh.has(pl.id) || recent(last[pl.id]), last: last[pl.id] || null }]));
+  return Object.fromEntries(players.map(pl => [pl.id, { online: recent(lastEnd[pl.id]), last: last[pl.id] || null, lastEnd: lastEnd[pl.id] || null }]));
 }
 
 (async () => {

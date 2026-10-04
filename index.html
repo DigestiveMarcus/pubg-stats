@@ -910,7 +910,7 @@ function renderStatus() {
   };
   const histLast = {};
   for (const m of Object.values(history.matches)) for (const pid in m.p) if (!histLast[pid] || m.t > histLast[pid]) histLast[pid] = m.t;
-  const list = data.players.map((p, i) => ({ ...p, color: COLORS[i % COLORS.length], on: fresh && !!st[p.id]?.online && Date.now() - Date.parse(st[p.id]?.last || 0) < 80 * 6e4, last: st[p.id]?.last || histLast[p.id] }))
+  const list = data.players.map((p, i) => ({ ...p, color: COLORS[i % COLORS.length], on: fresh && !!st[p.id]?.online && Date.now() - Date.parse(st[p.id]?.lastEnd || st[p.id]?.last || 0) < 35 * 6e4, last: st[p.id]?.lastEnd || st[p.id]?.last || histLast[p.id] }))
     .sort((a, b) => b.on - a.on || String(b.last).localeCompare(String(a.last)));
   const n = list.filter(x => x.on).length;
   const html = `<h3>Status</h3><p class="st-note">${n ? `${n} av ${list.length} spelar just nu` : "Ingen spelar just nu"} · uppdateras var 15:e min</p>
