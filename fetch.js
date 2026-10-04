@@ -143,8 +143,11 @@ async function updateHistory(players) {
   hist.skip ??= {};
   const ours = new Set(players.map(p => p.id));
 
+  // Hämta matcher som saknas, har gammalt format, eller saknar en spelare som var med
+  // (t.ex. när en ny spelare lagts till i players.json efter att matchen sparades)
+  const missing = id => players.some(p => p.matchIds.includes(id) && !hist.matches[id]?.p?.[p.id]);
   const todo = [...new Set(players.flatMap(p => p.matchIds))]
-    .filter(id => !hist.skip[id] && hist.matches[id]?.v !== SCHEMA)
+    .filter(id => !hist.skip[id] && (hist.matches[id]?.v !== SCHEMA || missing(id)))
     .sort((a, b) => (hist.matches[a] ? 1 : 0) - (hist.matches[b] ? 1 : 0)); // nya matcher först
   console.log(`${todo.length} matcher att hämta, max ${MAX_NEW_MATCHES} per körning`);
 

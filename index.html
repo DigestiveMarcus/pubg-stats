@@ -729,6 +729,11 @@ const NO_HIST = "Fylls på när matchhistoriken har hämtats.";
 // Profilbilder: lägg en bild i mappen avatars/ med exakt spelarnamn, t.ex. avatars/ELIDEG.jpg.
 // Saknas bilden visas spelarens initial i hans färg.
 const noAvatar = new Set();
+// Nykomlingar: spelare med färre än ROOKIE_MIN matcher denna säsong (alla lägen) är med i matchlogg, kartor,
+// spelarkort m.m., men inte i ranking, utmärkelser, rekord, sviter och topplistor. De flyttas upp automatiskt.
+const ROOKIE_MIN = 30;
+const seasonRounds = id => Object.values(data.stats.season).reduce((a, m) => a + (m[id]?.roundsPlayed || 0), 0);
+const isRookie = id => seasonRounds(id) < ROOKIE_MIN;
 let rankPos = {};
 function avatar(r, size = "", extra = "") {
   const cls = `avatar ${size} ${extra}`.trim();
@@ -781,10 +786,12 @@ function renderRanking(list) {
   let place = 0;
   rankPos = {};
   scored.forEach((x, i) => { if (i === 0 || shown(x) !== shown(scored[i - 1])) place = i + 1; rankPos[x.r.id] = place; });
-  document.getElementById("rank").innerHTML = scored.length ? scored.map(x => {
+  const rookies = data.players.filter(p => isRookie(p.id) && seasonRounds(p.id) > 0);
+  const rookieNote = rookies.length ? `<li class="msg">🐣 Nykomlingar som inte rankas än: ${rookies.map(p => `${esc(p.name)} (${seasonRounds(p.id)}/${ROOKIE_MIN} matcher)`).join(", ")}.</li>` : "";
+  document.getElementById("rank").innerHTML = (scored.length ? scored.map(x => {
     const why = x.strong;
     return `<li><span class="pos">${rankPos[x.r.id]}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="50 = gängets snitt">${shown(x)} poäng</span></li>`;
-  }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>';
+  }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>') + rookieNote;
 }
 
 // Lyckoamuletten / Sänket: hur ofta laget når topp 10 (topp 20 i duo, topp 40 i solo, alltså bästa 40 % av lagen)
@@ -848,6 +855,7 @@ function renderWeek() {
   const best = f => {
     let top = null;
     for (const m of week) for (const [id, s] of Object.entries(m.p)) {
+      if (isRookie(id)) continue;
       const v = f(s);
       if (v != null && (!top || v > top.v)) top = { v, id, m };
     }
@@ -908,7 +916,7 @@ function renderRecords() {
   if (!ms.length) { el.innerHTML = empty(NO_HIST); return; }
   el.innerHTML = RECORDS.map(r => {
     const all = [];
-    for (const m of ms) for (const [id, s] of Object.entries(m.p)) { const v = r.f(s); if (v != null && v > 0) all.push({ v, id, m }); }
+    for (const m of ms) for (const [id, s] of Object.entries(m.p)) { if (isRookie(id)) continue; const v = r.f(s); if (v != null && v > 0) all.push({ v, id, m }); }
     all.sort((a, b) => b.v - a.v || a.m.t.localeCompare(b.m.t));
     if (!all.length) return "";
     const [top, ...rest] = all.slice(0, 3);
@@ -1360,7 +1368,10 @@ function renderCard(list) {
   const head = document.getElementById("cardHead");
   if (r) {
     const rk = rankPos[r.id] || 0;
-    head.innerHTML = `${avatar(r, "xl")}<div><b>${esc(r.name)}</b><span>${rk ? `#${rk} i totalrankingen` : ""}${r.v ? `${rk ? " · " : ""}${r.v.rounds} matcher` : ""}</span></div>`;
+    const rookie = isRookie(r.id);
+    const info = rookie ? `🐣 Nykomling, rankas efter ${ROOKIE_MIN} matcher (${seasonRounds(r.id)} hittills)`
+      : `${rk ? `#${rk} i totalrankingen` : ""}${r.v ? `${rk ? " · " : ""}${r.v.rounds} matcher` : ""}`;
+    head.innerHTML = `${avatar(r, "xl")}<div><b>${esc(r.name)}</b><span>${info}</span></div>`;
   } else head.innerHTML = "";
   if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
@@ -1400,16 +1411,17 @@ function render() {
   M.teamKills.label = `Dödat lagkompisar (${state.scope === "season" ? "säsong" : "totalt"})`;
   M.teamKnocks.label = histSince ? `Knockat lagkompisar (sedan ${fmtDate(histSince)})` : "Knockat lagkompisar";
   const list = rows();
-  renderRanking(list);
-  renderAwards(list);
+  const core = list.filter(r => !isRookie(r.id)); // utan nykomlingar
+  renderRanking(core);
+  renderAwards(core);
   renderWeek();
   renderStatus();
   renderRecords();
-  renderStreaks(list);
+  renderStreaks(core);
   renderVs(list);
-  document.getElementById("combat").innerHTML = COMBAT.map(k => duel(list, k)).join("") || empty("Inga matcher i det här läget.");
-  document.getElementById("survival").innerHTML = SURVIVAL.map(k => duel(list, k)).join("");
-  document.getElementById("shameGrid").innerHTML = SHAME.map(k => duel(list, k)).join("");
+  document.getElementById("combat").innerHTML = COMBAT.map(k => duel(core, k)).join("") || empty("Inga matcher i det här läget.");
+  document.getElementById("survival").innerHTML = SURVIVAL.map(k => duel(core, k)).join("");
+  document.getElementById("shameGrid").innerHTML = SHAME.map(k => duel(core, k)).join("");
   const since = Object.values(history.matches).map(m => m.t).sort()[0];
   document.getElementById("shameNote").textContent = since
     ? `Dödsfall gäller vald period. Övriga räknas från matchhistoriken, sedan ${new Date(since).toLocaleDateString("sv-SE", { day: "numeric", month: "long" })}. Dör först = andel av matcherna med minst två från gänget där man dog först. Dödat lagkompisar gäller vald period, knockat lagkompisar räknas från matchhistoriken.`
