@@ -2,7 +2,9 @@ name: Uppdatera statistik
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # var 30:e minut
+    # GitHub hoppar ofta över körningar på jämna klockslag (:00, :30) när många kör samtidigt.
+    # Udda minuter och var 15:e minut gör att det blir betydligt fler körningar som faktiskt blir av.
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:          # knappen "Run workflow"
 
 permissions:
