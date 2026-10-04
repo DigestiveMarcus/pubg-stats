@@ -382,7 +382,7 @@
 
   <section id="s-rank" data-nav="Ranking">
     <h2>Totalranking</h2>
-    <p class="note">🥇 = bäst i gänget, 🥈 = tvåa. Poängen visar hur långt över eller under gängets snitt man ligger, där 50 är snittet. Stora skillnader väger mer än små, och den som spelat få matcher dras mot snittet tills han spelat fler. Topp 10 och vinster jämförs mot hur svårt läget är, eftersom det är fler lag i duo och solo än i squad. Vikter: K/D 20 %, skada per match 20 %, topp 10 20 %, vinster 15 %, knockar per match 10 %, revives per match 10 % och headshots 5 %.</p>
+    <p class="note">🥇 = bäst i gänget, 🥈 = tvåa. Poängen visar hur långt över eller under gängets snitt man ligger, där 50 är snittet. Stora skillnader väger mer än små, och den som spelat få matcher dras mot snittet tills han spelat fler. Topp 10 och vinster jämförs mot hur svårt läget är, eftersom det är fler lag i duo och solo än i squad. Vikter: K/D 25 %, skada per match 25 %, topp 10 15 %, vinster 10 %, knockar per match 10 %, revives per match 10 % och headshots 5 %.</p>
     <ol class="rank" id="rank"><li class="msg">Laddar statistik…</li></ol>
   </section>
 
@@ -601,7 +601,7 @@ const M = {
   betray:  { label: "Förräderier",       fmt: v => v },
 };
 // Totalrankingen: vikter per kategori, summerar till 1 (se rankingScores).
-const RANK_WEIGHTS = { kd: 0.20, adr: 0.20, top10Adj: 0.20, winAdj: 0.15, knocks: 0.10, revPm: 0.10, hs: 0.05 };
+const RANK_WEIGHTS = { kd: 0.25, adr: 0.25, top10Adj: 0.15, winAdj: 0.10, knocks: 0.10, revPm: 0.10, hs: 0.05 };
 const RANK_KEYS = Object.keys(RANK_WEIGHTS);
 const COMBAT = ["kd", "kda", "adr", "kpm", "knocks", "hs", "long", "kills"];
 const SURVIVAL = ["win", "top10", "surv", "revPm", "revives", "heals", "dist", "rounds"];
