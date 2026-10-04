@@ -332,6 +332,13 @@
   .luck-row b { font: 900 2rem/1 var(--display); color: var(--sand); white-space: nowrap; }
   .tile.gold .luck-row span:first-child b { color: var(--pan); }
   .tile.shame .luck-row span:first-child b { color: var(--blood); }
+  .rank li.rookie { opacity: 0.85; }
+  .rank li.rookie .pos { font-size: 1.6rem; }
+  .rank li.rookie .avatar { box-shadow: 0 0 0 2px var(--line); }
+  .rk-prog { display: flex; align-items: center; gap: 0.6rem; color: var(--dust); font-size: 0.9rem; white-space: nowrap; }
+  .rk-bar { width: 6rem; height: 0.45rem; background: var(--ridge); border-radius: 999px; overflow: hidden; }
+  .rk-bar i { display: block; height: 100%; background: var(--sage); border-radius: 999px; }
+  @media (max-width: 40rem) { .rk-bar { width: 3.5rem; } }
 </style>
 </head>
 <body>
@@ -787,7 +794,12 @@ function renderRanking(list) {
   rankPos = {};
   scored.forEach((x, i) => { if (i === 0 || shown(x) !== shown(scored[i - 1])) place = i + 1; rankPos[x.r.id] = place; });
   const rookies = data.players.filter(p => isRookie(p.id) && seasonRounds(p.id) > 0);
-  const rookieNote = rookies.length ? `<li class="msg">🐣 Nykomlingar som inte rankas än: ${rookies.map(p => `${esc(p.name)} (${seasonRounds(p.id)}/${ROOKIE_MIN} matcher)`).join(", ")}.</li>` : "";
+  const rookieNote = rookies.map(p => {
+    const n = seasonRounds(p.id), r = { name: p.name, color: colorOf(p.id) };
+    return `<li class="rookie"><span class="pos" aria-hidden="true">🐣</span>
+      <span class="who">${avatar(r)}<span>${esc(p.name)}<span class="why">Nykomling, rankas efter ${ROOKIE_MIN} matcher</span></span></span>
+      <span class="rk-prog" title="${n} av ${ROOKIE_MIN} matcher"><span class="rk-bar"><i style="width:${Math.min(100, n / ROOKIE_MIN * 100)}%"></i></span>${n}/${ROOKIE_MIN}</span></li>`;
+  }).join("");
   document.getElementById("rank").innerHTML = (scored.length ? scored.map(x => {
     const why = x.strong;
     return `<li><span class="pos">${rankPos[x.r.id]}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="50 = gängets snitt">${shown(x)} poäng</span></li>`;
