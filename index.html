@@ -749,6 +749,7 @@ const NO_HIST = "Fylls på när matchhistoriken har hämtats.";
 
 // Profilbilder: lägg en bild i mappen avatars/ med exakt spelarnamn, t.ex. avatars/ELIDEG.jpg.
 // Saknas bilden visas spelarens initial i hans färg.
+const AVATAR_V = 2; // höj när en profilbild byts, så att webbläsare hämtar den nya
 const noAvatar = new Set();
 // Nykomlingar: spelare med färre än ROOKIE_MIN matcher på kontot, botmatcher oräknade (alla lägen) är med i matchlogg, kartor,
 // spelarkort m.m., men inte i ranking, utmärkelser, rekord, sviter och topplistor. De flyttas upp automatiskt.
@@ -769,7 +770,7 @@ function avatar(r, size = "", extra = "") {
   const cls = `avatar ${size} ${extra}`.trim();
   const initial = `<span class="${cls}" style="background:${r.color}" aria-hidden="true">${esc(r.name[0].toUpperCase())}</span>`;
   if (noAvatar.has(r.name)) return initial;
-  return `<img class="${cls}" src="avatars/${encodeURIComponent(r.name)}.jpg" alt="" loading="lazy"
+  return `<img class="${cls}" src="avatars/${encodeURIComponent(r.name)}.jpg?v=${AVATAR_V}" alt="" loading="lazy"
     onerror="noAvatar.add(${esc(JSON.stringify(r.name))}); this.outerHTML = ${esc(JSON.stringify(initial))}">`;
 }
 const avId = (id, size, extra) => avatar({ name: nameOf(id), color: colorOf(id) }, size, extra);
@@ -834,30 +835,51 @@ function renderRanking(list) {
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>') + rookieNote;
 }
 
-// Lyckoamuletten / Sänket: hur ofta laget når topp 10 (topp 20 i duo, topp 40 i solo, alltså bästa 40 % av lagen)
-// i matcher med minst två från gänget, jämfört mellan matcher där spelaren var med och där han inte var det.
-const LUCK_MIN = 15; // minst så här många matcher både med och utan, så att slumpen inte avgör
-function luckTiles(list) {
-  const ms = filteredMatches().filter(m => Object.keys(m.p).length >= 2);
-  const TEAMS = { solo: 100, duo: 50, squad: 25 };
-  const topHit = m => Math.min(...Object.values(m.p).map(s => s.place)) <= (TEAMS[m.mode.split("-")[0]] || 25) * 0.4;
-  const res = list.map(r => {
-    const w = ms.filter(m => m.p[r.id]), wo = ms.filter(m => !m.p[r.id]);
-    if (w.length < LUCK_MIN || wo.length < LUCK_MIN) return null;
-    const a = w.filter(topHit).length / w.length, b = wo.filter(topHit).length / wo.length;
-    return { r, with: a, without: b, diff: a - b, nw: w.length, nwo: wo.length };
+// Lyckoamuletten / Sänket, så rättvist som möjligt:
+// - Bara squad (i duo är det samma sak som "Bästa duon").
+// - Parvis: för varje lagkompis Y jämförs Y:s squadmatcher MED spelaren mot Y:s squadmatcher UTAN spelaren,
+//   så att det inte är någon annans styrka som avgör. Paren vägs ihop efter hur mycket data de har.
+// - Mått: andel matcher där laget når topp 10. Botmatcher räknas inte.
+// - Titeln delas bara ut om skillnaden är tydligt större än slumpen (ungefär 90 % säkerhet).
+const PAIR_MIN = 10, LUCK_Z = 1.64;
+function luckData(list) {
+  const squad = state.view === "fpp" ? "squad-fpp" : "squad";
+  const ms = Object.values(history.matches).filter(m => m.mode === squad && !isBotMatch(m) && Object.keys(m.p).length >= 2);
+  const top = m => Math.min(...Object.values(m.p).map(s => s.place)) <= 10;
+  const allIds = data.players.map(p => p.id);
+  return list.map(r => {
+    let W = 0, D = 0, V = 0, A = 0, B = 0, pairs = 0; const used = new Set();
+    for (const y of allIds) {
+      if (y === r.id) continue;
+      const withY = ms.filter(m => m.p[y]);
+      const w = withY.filter(m => m.p[r.id]), wo = withY.filter(m => !m.p[r.id]);
+      if (w.length < PAIR_MIN || wo.length < PAIR_MIN) continue;
+      // Andelar med liten utjämning (+1/+2) så att 0 % och 100 % inte blir extremt säkra
+      const pw = (w.filter(top).length + 1) / (w.length + 2), po = (wo.filter(top).length + 1) / (wo.length + 2);
+      const wt = w.length * wo.length / (w.length + wo.length);
+      W += wt; D += wt * (pw - po); A += wt * pw; B += wt * po;
+      V += wt * wt * (pw * (1 - pw) / w.length + po * (1 - po) / wo.length);
+      w.concat(wo).forEach(m => used.add(m)); pairs++;
+    }
+    if (!W) return null;
+    const diff = D / W, se = Math.sqrt(V) / W;
+    return { r, diff, z: diff / se, with: A / W, without: B / W, pairs, n: used.size };
   }).filter(Boolean);
-  if (res.length < 2) return "";
+}
+function luckTiles(list) {
+  const res = luckData(list);
   const pc = v => Math.round(v * 100) + "&nbsp;%";
   const tile = (x, cls, icon, name, lead) => `<div class="tile luck ${cls}"><span class="t-head">${icon} ${name}</span>
     <span class="t-who">${avatar(x.r, "sm")}${esc(x.r.name)}</span>
     <span class="t-val">${lead}</span>
     <span class="luck-row"><span><b>${pc(x.with)}</b>med ${esc(x.r.name)}</span><span><b>${pc(x.without)}</b>utan</span></span>
-    <span class="t-val">av matcherna når laget topp 10 (topp 20 i duo). ${x.nw} matcher med, ${x.nwo} utan.</span></div>`;
-  const sorted = [...res].sort((a, b) => b.diff - a.diff);
-  const best = sorted[0], worst = sorted.at(-1);
-  return (best.diff > 0 ? tile(best, "gold", "🍀", "Lyckoamuletten", "Laget når topp 10 oftare när han är med") : "") +
-         (worst.diff < 0 && worst !== best ? tile(worst, "shame", "🪨", "Sänket", "Laget når topp 10 mer sällan när han är med") : "");
+    <span class="t-val">av squadmatcherna når samma lagkompisar topp 10. Jämfört via ${x.pairs} ${x.pairs === 1 ? "kompis" : "kompisar"} i ${x.n} squadmatcher.</span></div>`;
+  const none = (icon, name) => `<div class="tile luck"><span class="t-head">${icon} ${name}</span>
+    <span class="t-val" style="margin-top:.35rem">Ingen tydlig skillnad än. Delas ut när det finns tillräckligt många squadmatcher med och utan varje spelare.</span></div>`;
+  const good = res.filter(x => x.z >= LUCK_Z).sort((a, b) => b.diff - a.diff)[0];
+  const bad = res.filter(x => x.z <= -LUCK_Z).sort((a, b) => a.diff - b.diff)[0];
+  return (good ? tile(good, "gold", "🍀", "Lyckoamuletten", "Laget når topp 10 oftare när han är med") : none("🍀", "Lyckoamuletten")) +
+         (bad ? tile(bad, "shame", "🪨", "Sänket", "Laget når topp 10 mer sällan när han är med") : none("🪨", "Sänket"));
 }
 
 function renderAwards(list) {
