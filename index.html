@@ -339,6 +339,9 @@
   .rk-bar { width: 6rem; height: 0.45rem; background: var(--ridge); border-radius: 999px; overflow: hidden; }
   .rk-bar i { display: block; height: 100%; background: var(--sage); border-radius: 999px; }
   @media (max-width: 40rem) { .rk-bar { width: 3.5rem; } }
+  .botflag { display: inline-block; margin-top: 0.2rem; padding: 0.05rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600;
+    background: rgba(169,165,143,.18); color: var(--sand); white-space: nowrap; }
+  details.match.bot > summary { opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -646,8 +649,16 @@ function sumStats(list) {
   return out;
 }
 
-const filteredMatches = () => Object.entries(history.matches).map(([id, m]) => (m.id = id, m))
-  .filter(m => modeKeys().includes(m.mode)).sort((a, b) => a.t.localeCompare(b.t));
+// Botmatch: minst 40 % bottar i lobbyn. För äldre matcher utan bot-räkning: minst 75 % av gängets kills var på bottar.
+const BOT_SHARE = 0.4;
+function isBotMatch(m) {
+  if (m.ai != null && m.np) return m.ai / m.np >= BOT_SHARE;
+  const ps = Object.values(m.p), tk = ps.reduce((a, s) => a + (s.tk || 0), 0), bk = ps.reduce((a, s) => a + (s.bk || 0), 0);
+  return tk >= 2 && bk / tk >= 0.75;
+}
+// Matcher i valt läge. Botmatcher räknas bort överallt utom i matchloggen (bots: true).
+const filteredMatches = ({ bots = false } = {}) => Object.entries(history.matches).map(([id, m]) => (m.id = id, m))
+  .filter(m => modeKeys().includes(m.mode) && (bots || !isBotMatch(m))).sort((a, b) => a.t.localeCompare(b.t));
 
 const playerHistory = (id, ms) => ms.filter(m => m.p[id]).map(m => ({ ...m.p[id], t: m.t, map: m.map, mode: m.mode }));
 
@@ -860,7 +871,7 @@ function renderAwards(list) {
 
 function renderWeek() {
   const since = Date.now() - 7 * 864e5;
-  const all = Object.values(history.matches).sort((a, b) => b.t.localeCompare(a.t));
+  const all = Object.values(history.matches).filter(m => !isBotMatch(m)).sort((a, b) => b.t.localeCompare(a.t));
   const week = all.filter(m => Date.parse(m.t) >= since);
   const el = document.getElementById("week");
   if (!all.length) { el.innerHTML = empty(NO_HIST); return; }
@@ -1262,7 +1273,7 @@ const WEEKDAY = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
 function renderLog() {
   // Solo valt: visa alla solomatcher. Annars: bara duo/squad där minst två från gänget var med.
   const solo = state.mode === "solo";
-  const ms = filteredMatches().filter(m => solo ? m.mode.startsWith("solo") : !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
+  const ms = filteredMatches({ bots: true }).filter(m => solo ? m.mode.startsWith("solo") : !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
   const el = document.getElementById("log"), more = document.getElementById("logMore");
   document.getElementById("logNote").textContent = solo
     ? "Alla solomatcher, senaste först. Klicka på en match för detaljer."
@@ -1275,9 +1286,9 @@ function renderLog() {
     const best = places[0], d = new Date(m.t);
     const kills = sum(ids, id => m.p[id].k), dmg = sum(ids, id => m.p[id].dmg);
     const cls = best === 1 ? "win" : best <= 10 ? "top10" : "";
-    return `<details class="match ${best === 1 ? "win" : ""}" data-id="${esc(m.id)}" ${open.has(m.id) ? "open" : ""}>
+    return `<details class="match ${best === 1 ? "win" : ""} ${isBotMatch(m) ? "bot" : ""}" data-id="${esc(m.id)}" ${open.has(m.id) ? "open" : ""}>
       <summary>
-        <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}</span>
+        <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}${isBotMatch(m) ? ' <span class="botflag" title="Många bottar i lobbyn. Räknas inte med i statistiken.">🤖 Botmatch</span>' : ""}</span>
         <span class="m-who">${ids.map(id => `<span class="who">${avId(id, "xs")}${esc(nameOf(id))} <small>${m.p[id].k} kills</small></span>`).join("")}</span>
         <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${places.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
         <span class="m-kills"><b>${kills}</b>kills<br>${kfmt(dmg)} skada</span>
@@ -1633,7 +1644,7 @@ function showUpdated() {
 // alltså sedan sidan startade. Heals/boosts och distans finns inte per match, så de visas bara för "Totalt".
 function statsFromHistory(hist) {
   const out = {};
-  for (const m of Object.values(hist.matches)) for (const [id, p] of Object.entries(m.p)) {
+  for (const m of Object.values(hist.matches)) if (!isBotMatch(m)) for (const [id, p] of Object.entries(m.p)) {
     const o = ((out[m.mode] ??= {})[id] ??= { roundsPlayed: 0, kills: 0, wins: 0, losses: 0, top10s: 0, damageDealt: 0, headshotKills: 0,
       longestKill: 0, timeSurvived: 0, dBNOs: 0, assists: 0, revives: 0, teamKills: 0 });
     const win = p.place === 1;

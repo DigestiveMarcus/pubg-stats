@@ -146,8 +146,10 @@ async function updateHistory(players) {
   // Hämta matcher som saknas, har gammalt format, eller saknar en spelare som var med
   // (t.ex. när en ny spelare lagts till i players.json efter att matchen sparades)
   const missing = id => players.some(p => p.matchIds.includes(id) && !hist.matches[id]?.p?.[p.id]);
+  // Matcher med bot-kills men utan räkning av bottar i lobbyn hämtas om, så att botmatcher kan märkas säkert
+  const needsBotCount = id => hist.matches[id] && hist.matches[id].np == null && Object.values(hist.matches[id].p).some(s => s.bk > 0);
   const todo = [...new Set(players.flatMap(p => p.matchIds))]
-    .filter(id => !hist.skip[id] && (hist.matches[id]?.v !== SCHEMA || missing(id)))
+    .filter(id => !hist.skip[id] && (hist.matches[id]?.v !== SCHEMA || missing(id) || needsBotCount(id)))
     .sort((a, b) => (hist.matches[a] ? 1 : 0) - (hist.matches[b] ? 1 : 0)); // nya matcher först
   console.log(`${todo.length} matcher att hämta, max ${MAX_NEW_MATCHES} per körning`);
 
@@ -175,7 +177,10 @@ async function updateHistory(players) {
         };
       }
       const isNew = !hist.matches[id];
-      hist.matches[id] = { v: SCHEMA, t: a.createdAt, mode: a.gameMode, map: a.mapName, p };
+      // Antal bottar i lobbyn (deltagare med konto-id som börjar med "ai."), för att kunna märka botmatcher
+      const parts = m.included.filter(x => x.type === "participant");
+      const ai = parts.filter(x => String(x.attributes.stats.playerId).startsWith("ai.")).length;
+      hist.matches[id] = { v: SCHEMA, t: a.createdAt, mode: a.gameMode, map: a.mapName, ai, np: parts.length, p };
       if (isNew) {
         added++;
         if (Date.now() - Date.parse(a.createdAt) < 3 * 36e5) Object.keys(p).forEach(pid => fresh.add(pid));
