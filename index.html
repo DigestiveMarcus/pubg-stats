@@ -495,7 +495,7 @@
 
   <section id="s-log" data-nav="Matchlogg">
     <h2>Matchlogg</h2>
-    <p class="note">Alla matcher där minst två från gänget var med, senaste först. Klicka på en match för detaljer.</p>
+    <p class="note" id="logNote">Alla matcher där minst två från gänget var med, senaste först. Klicka på en match för detaljer.</p>
     <div class="log" id="log"></div>
     <button class="more" id="logMore" hidden>Visa fler matcher</button>
   </section>
@@ -1260,9 +1260,14 @@ const modeLabel = m => { const [g, f] = m.split("-"); return g[0].toUpperCase() 
 const WEEKDAY = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
 
 function renderLog() {
-  const ms = filteredMatches().filter(m => Object.keys(m.p).length >= 2).reverse();
+  // Solo valt: visa alla solomatcher. Annars: bara duo/squad där minst två från gänget var med.
+  const solo = state.mode === "solo";
+  const ms = filteredMatches().filter(m => solo ? m.mode.startsWith("solo") : !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
   const el = document.getElementById("log"), more = document.getElementById("logMore");
-  if (!ms.length) { el.innerHTML = empty(Object.keys(history.matches).length ? "Inga matcher med minst två från gänget i det här läget." : NO_HIST); more.hidden = true; return; }
+  document.getElementById("logNote").textContent = solo
+    ? "Alla solomatcher, senaste först. Klicka på en match för detaljer."
+    : "Alla matcher där minst två från gänget var med, senaste först. Välj Solo högst upp för att se solomatcher. Klicka på en match för detaljer.";
+  if (!ms.length) { el.innerHTML = empty(!Object.keys(history.matches).length ? NO_HIST : solo ? "Inga solomatcher i historiken än." : "Inga matcher med minst två från gänget i det här läget."); more.hidden = true; return; }
   const open = new Set([...el.querySelectorAll("details[open]")].map(d => d.dataset.id));
   el.innerHTML = ms.slice(0, state.logN).map(m => {
     const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
