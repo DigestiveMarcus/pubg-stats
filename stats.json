@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-05T23:14:05.887Z",
+ "updated": "2026-10-05T23:28:08.762Z",
  "season": "division.bro.official.pc-2018-43",
  "players": [
   {
@@ -453,7 +453,7 @@
      "kills": 43,
      "longestKill": 188.07967,
      "longestTimeSurvived": 1293,
-     "losses": 8,
+     "losses": 11,
      "maxKillStreaks": 2,
      "mostSurvivalTime": 1293,
      "rankPoints": 0,
@@ -462,15 +462,15 @@
      "rideDistance": 852.7571,
      "roadKills": 0,
      "roundMostKills": 11,
-     "roundsPlayed": 10,
+     "roundsPlayed": 13,
      "suicides": 0,
      "swimDistance": 0,
      "teamKills": 0,
-     "timeSurvived": 6207,
+     "timeSurvived": 6726,
      "top10s": 4,
      "vehicleDestroys": 0,
-     "walkDistance": 17431.64,
-     "weaponsAcquired": 76,
+     "walkDistance": 18167.46,
+     "weaponsAcquired": 96,
      "weeklyKills": 22,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -1799,7 +1799,7 @@
      "kills": 43,
      "longestKill": 188.07967,
      "longestTimeSurvived": 1293,
-     "losses": 8,
+     "losses": 11,
      "maxKillStreaks": 2,
      "mostSurvivalTime": 1293,
      "rankPoints": 0,
@@ -1808,15 +1808,15 @@
      "rideDistance": 852.7571,
      "roadKills": 0,
      "roundMostKills": 11,
-     "roundsPlayed": 10,
+     "roundsPlayed": 13,
      "suicides": 0,
      "swimDistance": 0,
      "teamKills": 0,
-     "timeSurvived": 6207,
+     "timeSurvived": 6726,
      "top10s": 4,
      "vehicleDestroys": 0,
-     "walkDistance": 17431.64,
-     "weaponsAcquired": 76,
+     "walkDistance": 18167.46,
+     "weaponsAcquired": 96,
      "weeklyKills": 22,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -2748,9 +2748,9 @@
    "lastEnd": "2026-10-05T20:19:44.000Z"
   },
   "account.5f8ad53ff61f426a831ae4b42dd36a24": {
-   "online": true,
-   "last": "2026-10-05T22:32:52Z",
-   "lastEnd": "2026-10-05T22:54:25.000Z"
+   "online": false,
+   "last": "2026-10-05T22:56:13Z",
+   "lastEnd": "2026-10-05T22:59:06.000Z"
   }
  }
 }
