@@ -75,11 +75,11 @@
   section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 42rem; }
 
   /* Flikar */
-  .tabs { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem;
+  .tabs { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem;
     background: var(--terrain); margin: 0 -1.25rem; padding: 0.6rem 1.25rem; border-bottom: 1px solid var(--line); }
   .tabs button { display: flex; align-items: center; justify-content: center; gap: 0.55rem; min-height: 3.4rem;
     background: var(--ridge); border: 1px solid var(--line); border-radius: 6px; color: var(--sand);
-    font: 700 clamp(1.15rem, 1.45vw, 1.45rem)/1 var(--display); letter-spacing: 0.01em; padding: 0.5rem 0.6rem; cursor: pointer; white-space: nowrap; overflow: hidden;
+    font: 700 clamp(1.05rem, 1.35vw, 1.4rem)/1 var(--display); letter-spacing: 0.01em; padding: 0.5rem 0.5rem; cursor: pointer; white-space: nowrap; overflow: hidden;
     transition: background .15s, border-color .15s, color .15s; }
   .tabs button .ti { font-size: 1.35rem; line-height: 1; }
   .tabs button:hover { border-color: var(--pan); }
@@ -345,23 +345,22 @@
   details.match.bot > summary .m-who, details.match.bot > summary .m-place, details.match.bot > summary .m-kills { opacity: 0.6; }
   .botnote { margin: 0 0 0.75rem; padding: 0.6rem 0.8rem; border-radius: 6px; background: rgba(127,179,200,.12);
     border: 1px solid rgba(127,179,200,.45); color: var(--sand); }
-  details.night { border-bottom: 1px solid var(--line); }
-  details.night > summary { display: grid; grid-template-columns: 11rem minmax(0, 1fr) minmax(0, 1.3fr); grid-template-areas: "date stats mvp" "date more more";
-    gap: 0.3rem 1.25rem; align-items: center; padding: 0.9rem 0.6rem; cursor: pointer; list-style: none; background: var(--ridge); border-left: 4px solid var(--pan); margin-top: 0.75rem; border-radius: 4px; }
-  details.night > summary::-webkit-details-marker { display: none; }
-  details.night > summary:hover { filter: brightness(1.08); }
-  .n-date { grid-area: date; color: var(--dust); font-size: 0.9rem; line-height: 1.3; }
-  .n-date b { display: block; color: var(--sand); font: 700 1.35rem/1.1 var(--display); }
-  .n-stats { grid-area: stats; font-weight: 600; }
-  .n-mvp { grid-area: mvp; display: flex; align-items: center; gap: 0.55rem; }
-  .n-mvp small { display: block; color: var(--pan); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .night { margin: 0 0 1.5rem; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .night.latest { border-color: var(--pan); }
+  .n-head { display: grid; grid-template-columns: 12rem 1fr auto; gap: 0.75rem 1.5rem; align-items: center; padding: 1rem 1.1rem; background: var(--ridge); }
+  .n-date { color: var(--dust); font-size: 0.9rem; line-height: 1.3; }
+  .n-date small { display: block; color: var(--pan); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .n-date b { display: block; color: var(--sand); font: 700 1.5rem/1.1 var(--display); }
+  .n-stats { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; color: var(--dust); }
+  .n-stats b { color: var(--sand); font: 900 1.5rem/1 var(--display); margin-right: 0.3rem; }
+  .n-mvp { display: flex; align-items: center; gap: 0.7rem; }
+  .n-mvp small { display: block; color: var(--pan); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .n-mvp b { display: block; font-size: 1.1rem; }
   .n-mvp em { display: block; font-style: normal; color: var(--dust); font-size: 0.85rem; }
-  .n-more { grid-area: more; color: var(--dust); font-size: 0.88rem; }
-  .n-matches { padding: 0 0 0.5rem 1rem; border-left: 1px solid var(--line); margin-left: 0.6rem; }
-  @media (max-width: 44rem) {
-    details.night > summary { grid-template-columns: 1fr; grid-template-areas: "date" "stats" "mvp" "more"; }
-    .n-matches { padding-left: 0.4rem; margin-left: 0.2rem; }
-  }
+  .n-table { min-width: 38rem; }
+  .n-table tr.mvp-row td { color: var(--pan); }
+  .n-table tr.mvp-row td:first-child { font-weight: 600; }
+  @media (max-width: 44rem) { .n-head { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -516,6 +515,13 @@
     </div>
   </section>
 
+  <section id="s-nights" data-nav="Spelpass">
+    <h2>Spelpass</h2>
+    <p class="note">En sammanfattning per spelpass, alltså matcher med mindre än 2 timmars paus emellan. Spelar ni på morgonen och sedan igen på kvällen blir det två pass. Passets MVP har högst snitt av MVP-poäng per match: kills + skada/100 + placering (vinst 3, topp 5 2, topp 10 1), bland dem som spelat minst halva passet. 🦸 Clutch = sist kvar från gänget i minst en minut och laget når topp 10. Botmatcher räknas inte.</p>
+    <div id="nights"></div>
+    <button class="more" id="nightsMore" hidden>Visa fler spelpass</button>
+  </section>
+
   <section id="s-log" data-nav="Matchlogg">
     <h2>Matchlogg</h2>
     <p class="note" id="logNote">Alla matcher där minst två från gänget var med, senaste först. Klicka på en match för detaljer.</p>
@@ -645,7 +651,7 @@ const AWARDS = [
   { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 4 };
+const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5 };
 const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
   Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
 let data, history = { matches: {} };
@@ -1326,8 +1332,8 @@ function renderGeo(list) {
 const modeLabel = m => { const [g, f] = m.split("-"); return g[0].toUpperCase() + g.slice(1) + (f ? " FPP" : " TPP"); };
 const WEEKDAY = ["sön", "mån", "tis", "ons", "tor", "fre", "lör"];
 
-// ---- Kvällar, clutch och slutzon ----
-const SESSION_GAP_H = 2;      // mer än så här många timmar mellan matcher = ny kväll
+// ---- Spelpass, clutch och slutzon ----
+const SESSION_GAP_H = 2;      // mer än så här många timmar mellan matcher = nytt spelpass
 const CLUTCH_ALONE_S = 60;    // minst så här länge ensam kvar från gänget för att räkna som clutch
 const ENDZONE_MARGIN_S = 30;  // dör man inom så här många sekunder efter en lagkompis räknas man som död samtidigt
 const ENDZONE_MIN = 10;       // minst så här många matcher med data för Slutzonskungen
@@ -1392,7 +1398,7 @@ function clutchTiles(list) {
       <span class="t-val">I snitt ${Math.round(king.avg)} spelare kvar när han dör (${king.n} matcher).</span></div>` : "");
 }
 
-// Kvällens MVP: poäng per match = kills + skada/100 + placering (vinst 3, topp 5 2, topp 10 1). Minst 3 matcher.
+// Passets MVP: poäng per match = kills + skada/100 + placering (vinst 3, topp 5 2, topp 10 1). Minst halva passet.
 const placePts = p => p === 1 ? 3 : p <= 5 ? 2 : p <= 10 ? 1 : 0;
 function sessionsOf(ms) { // ms sorterade nyast först
   const out = [];
@@ -1402,40 +1408,42 @@ function sessionsOf(ms) { // ms sorterade nyast först
   }
   return out;
 }
-// Kvällens namn: matcher som börjar efter midnatt (före kl. 6) räknas till kvällen innan
+// Passets namn: dag + del av dagen när första matchen startade. Natt (00–05) räknas till dagen innan.
+const DAYPART = h => h < 5 ? ["🌌", "Natt"] : h < 11 ? ["🌅", "Morgon"] : h < 17 ? ["☀️", "Dag"] : ["🌙", "Kväll"];
 function nightLabel(first) {
-  const d = new Date(first.getTime() - 6 * 36e5);
+  const d = new Date(first.getTime() - 5 * 36e5);
   const w = d.toLocaleDateString("sv-SE", { weekday: "long" });
-  return `${w[0].toUpperCase() + w.slice(1)} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}${first.getHours() < 6 ? " (natt)" : ""}`;
+  const [icon, part] = DAYPART(first.getHours());
+  return `${icon} ${w[0].toUpperCase() + w.slice(1)} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })} · ${part}`;
 }
-function nightCard(ss, open) {
+function nightCard(ss, latest) {
   const real = ss.filter(m => !isBotMatch(m));
   const first = new Date(ss.at(-1).t), last = new Date(ss[0].t);
   const hm = d => d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
   const best = m => Math.min(...Object.values(m.p).map(s => s.place));
   const wins = real.filter(m => best(m) === 1).length, top10 = real.filter(m => best(m) <= 10).length;
+  const clutch = real.flatMap(clutchesIn);
   const per = {};
   for (const m of real) for (const [id, s] of Object.entries(m.p)) {
-    const x = (per[id] ??= { n: 0, k: 0, dmg: 0, pts: 0 });
-    x.n++; x.k += s.k; x.dmg += s.dmg; x.pts += s.k + s.dmg / 100 + placePts(s.place);
+    const x = (per[id] ??= { n: 0, k: 0, dmg: 0, pts: 0, bp: 99, cl: 0, cw: 0 });
+    x.n++; x.k += s.k; x.dmg += s.dmg; x.pts += s.k + s.dmg / 100 + placePts(s.place); x.bp = Math.min(x.bp, s.place);
   }
+  for (const c of clutch) if (per[c.id]) { per[c.id].cl++; per[c.id].cw += c.win; }
   const ppl = Object.entries(per);
-  const minN = Math.max(3, Math.ceil(real.length / 2)); // måste ha spelat minst halva kvällen (och minst 3 matcher)
+  const minN = Math.max(3, Math.ceil(real.length / 2)); // måste ha spelat minst halva passet (och minst 3 matcher)
   const mvp = ppl.filter(([, x]) => x.n >= minN).sort((a, b) => b[1].pts / b[1].n - a[1].pts / a[1].n)[0];
-  const top = f => ppl.sort((a, b) => f(b[1]) - f(a[1]))[0];
-  const kTop = top(x => x.k), dTop = top(x => x.dmg);
-  const clutch = real.flatMap(clutchesIn);
-  const cl = [...new Set(clutch.map(c => c.id))].map(id => `${esc(nameOf(id))}${clutch.filter(c => c.id === id && c.win).length ? " 🍗" : ""}`);
   const f = v => v.toFixed(1).replace(".", ",");
-  return `<details class="night" ${open ? "open" : ""} data-night="${esc(ss.at(-1).id)}">
-    <summary>
-      <span class="n-date"><b>${nightLabel(first)}</b>${hm(first)}–${hm(last)}</span>
-      <span class="n-stats">${ss.length} ${ss.length === 1 ? "match" : "matcher"}${wins ? ` · 🍗 ${wins} ${wins === 1 ? "vinst" : "vinster"}` : ""} · ${top10} topp 10 · ${sum(real, m => sum(Object.values(m.p), s => s.k))} kills</span>
-      ${mvp ? `<span class="n-mvp">${avId(mvp[0], "sm")}<span><small>⭐ Kvällens MVP</small>${esc(nameOf(mvp[0]))} <em>${f(mvp[1].pts / mvp[1].n)} p/match · ${mvp[1].k} kills · ${kfmt(mvp[1].dmg)} skada</em></span></span>` : ""}
-      <span class="n-more">${kTop && kTop[1].k ? `🎯 Flest kills: ${esc(nameOf(kTop[0]))} (${kTop[1].k})` : ""}${dTop ? ` · 💥 Mest skada: ${esc(nameOf(dTop[0]))} (${kfmt(dTop[1].dmg)})` : ""}${cl.length ? ` · 🦸 Clutch: ${cl.join(", ")}` : ""}</span>
-    </summary>
-    <div class="n-matches">${ss.map(matchRow).join("")}</div>
-  </details>`;
+  const rowsHtml = [...ppl].sort((a, b) => b[1].pts / b[1].n - a[1].pts / a[1].n).map(([id, x]) => `<tr${mvp && id === mvp[0] ? ' class="mvp-row"' : ""}>
+      <td><span class="who">${avId(id, "xs")}${esc(nameOf(id))}${mvp && id === mvp[0] ? " ⭐" : ""}</span></td><td>${x.n}</td><td>${x.k}</td><td>${x.dmg}</td>
+      <td>${x.bp === 1 ? "🍗" : "#" + x.bp}</td><td>${x.cl ? `🦸 ${x.cl}${x.cw ? " 🍗" : ""}` : "–"}</td><td><b>${f(x.pts / x.n)}</b></td></tr>`).join("");
+  return `<article class="night ${latest ? "latest" : ""}">
+    <header class="n-head">
+      <span class="n-date">${latest ? '<small>Senaste spelpasset</small>' : ""}<b>${nightLabel(first)}</b>${hm(first)}–${hm(last)}</span>
+      <span class="n-stats"><b>${ss.length}</b> ${ss.length === 1 ? "match" : "matcher"}<b>${wins}</b> ${wins === 1 ? "vinst" : "vinster"}<b>${top10}</b> topp 10<b>${sum(real, m => sum(Object.values(m.p), s => s.k))}</b> kills</span>
+      ${mvp ? `<span class="n-mvp">${avId(mvp[0], latest ? "lg" : "sm")}<span><small>⭐ Passets MVP</small><b>${esc(nameOf(mvp[0]))}</b><em>${f(mvp[1].pts / mvp[1].n)} MVP-poäng per match</em></span></span>` : ""}
+    </header>
+    <div class="scroll"><table class="n-table"><thead><tr><th>Spelare</th><th>Matcher</th><th>Kills</th><th>Skada</th><th>Bästa plac.</th><th>Clutch</th><th>MVP-poäng/match</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+  </article>`;
 }
 function matchRow(m) {
   const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
@@ -1448,7 +1456,7 @@ function matchRow(m) {
   const clutch = new Set(clutchesIn(m).map(c => c.id));
   return `<details class="match ${best === 1 ? "win" : ""} ${isBotMatch(m) ? "bot" : ""}" data-id="${esc(m.id)}">
       <summary>
-        <span class="m-when"><b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}</b>${mapName(m.map)}<br>${modeLabel(m.mode)}${isBotMatch(m) ? '<br><span class="botflag" title="Många bottar i lobbyn. Räknas inte med i statistiken.">🤖 BOTMATCH</span>' : ""}</span>
+        <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}${isBotMatch(m) ? '<br><span class="botflag" title="Många bottar i lobbyn. Räknas inte med i statistiken.">🤖 BOTMATCH</span>' : ""}</span>
         <span class="m-who">${ids.map(id => `<span class="who">${avId(id, "xs")}${esc(nameOf(id))} <small>${m.p[id].k} kills${clutch.has(id) ? " · 🦸 clutch" : ""}</small></span>`).join("")}</span>
         <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${teams.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
         <span class="m-kills"><b>${kills}</b>kills<br>${kfmt(dmg)} skada</span>
@@ -1457,24 +1465,35 @@ function matchRow(m) {
     </details>`;
 }
 
-function renderLog() {
-  // Solo valt: visa alla solomatcher. Annars: bara duo/squad där minst två från gänget var med.
+// Vilka matcher som visas i matchloggen och kvällarna: Solo valt = solomatcher, annars duo/squad med minst två från gänget
+function logMatches() {
   const solo = state.mode === "solo";
-  const ms = filteredMatches({ bots: true }).filter(m => solo ? m.mode.startsWith("solo") : !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
+  return filteredMatches({ bots: true }).filter(m => solo ? m.mode.startsWith("solo") : !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
+}
+const noLogText = () => !Object.keys(history.matches).length ? NO_HIST : state.mode === "solo" ? "Inga solomatcher i historiken än." : "Inga matcher med minst två från gänget i det här läget.";
+
+function renderLog() {
+  const solo = state.mode === "solo", ms = logMatches();
   const el = document.getElementById("log"), more = document.getElementById("logMore");
-  document.getElementById("logNote").textContent = (solo
-    ? "Alla solomatcher, grupperade per kväll."
-    : "Alla matcher där minst två från gänget var med, grupperade per kväll. Välj Solo högst upp för att se solomatcher.")
-    + " Kvällens MVP = högst snitt av kills + skada/100 + placering (vinst 3, topp 5 2, topp 10 1), bland dem som spelat minst halva kvällen. 🦸 Clutch = sist kvar från gänget i minst en minut och laget når topp 10.";
-  if (!ms.length) { el.innerHTML = empty(!Object.keys(history.matches).length ? NO_HIST : solo ? "Inga solomatcher i historiken än." : "Inga matcher med minst två från gänget i det här läget."); more.hidden = true; return; }
-  const openN = new Set([...el.querySelectorAll("details.night[open]")].map(d => d.dataset.night));
-  const openM = new Set([...el.querySelectorAll("details.match[open]")].map(d => d.dataset.id));
-  const sessions = sessionsOf(ms);
-  el.innerHTML = sessions.slice(0, state.logN).map((ss, i) => nightCard(ss, openN.size ? openN.has(ss.at(-1).id) : i === 0)).join("");
-  el.querySelectorAll("details.match").forEach(d => { if (openM.has(d.dataset.id)) d.open = true; });
-  more.hidden = sessions.length <= state.logN;
-  more.textContent = `Visa fler kvällar (${sessions.length - state.logN} kvar)`;
+  document.getElementById("logNote").textContent = solo
+    ? "Alla solomatcher, senaste först. Klicka på en match för detaljer."
+    : "Alla matcher där minst två från gänget var med, senaste först. Välj Solo högst upp för att se solomatcher. Klicka på en match för detaljer.";
+  if (!ms.length) { el.innerHTML = empty(noLogText()); more.hidden = true; return; }
+  const open = new Set([...el.querySelectorAll("details.match[open]")].map(d => d.dataset.id));
+  el.innerHTML = ms.slice(0, state.logN).map(matchRow).join("");
+  el.querySelectorAll("details.match").forEach(d => { if (open.has(d.dataset.id)) d.open = true; });
+  more.hidden = ms.length <= state.logN;
+  more.textContent = `Visa fler matcher (${ms.length - state.logN} kvar)`;
   el.querySelectorAll("details.match[open]").forEach(fillMatch);
+}
+
+function renderNights() {
+  const ms = logMatches(), el = document.getElementById("nights"), more = document.getElementById("nightsMore");
+  if (!ms.length) { el.innerHTML = empty(noLogText()); more.hidden = true; return; }
+  const sessions = sessionsOf(ms);
+  el.innerHTML = sessions.slice(0, state.nightsN).map((ss, i) => nightCard(ss, i === 0)).join("");
+  more.hidden = sessions.length <= state.nightsN;
+  more.textContent = `Visa fler spelpass (${sessions.length - state.nightsN} kvar)`;
 }
 
 function fillMatch(det) {
@@ -1640,6 +1659,7 @@ function render() {
   renderMaps(list);
   renderGeo(list);
   renderLog();
+  renderNights();
   renderNemesis(list);
   renderModes();
   renderCard(list);
@@ -1718,7 +1738,8 @@ document.getElementById("geoPlayer").addEventListener("click", e => {
   state.geoPlayer = b.dataset.id; renderGeo(rows());
 });
 document.getElementById("log").addEventListener("toggle", e => { if (e.target.open && e.target.classList.contains("match")) fillMatch(e.target); }, true);
-document.getElementById("logMore").addEventListener("click", () => { state.logN += 4; renderLog(); });
+document.getElementById("logMore").addEventListener("click", () => { state.logN += 15; renderLog(); });
+document.getElementById("nightsMore").addEventListener("click", () => { state.nightsN += 5; renderNights(); });
 let geoResize;
 addEventListener("resize", () => { clearTimeout(geoResize); geoResize = setTimeout(() => data && renderGeo(rows()), 200); });
 document.getElementById("gunPicker").addEventListener("click", e => {
@@ -1730,8 +1751,9 @@ document.getElementById("gunPicker").addEventListener("click", e => {
 const TABS = [
   { id: "oversikt", icon: "🏆", label: "Översikt", secs: ["s-rank", "s-awards", "s-week", "s-records", "s-streaks"] },
   { id: "spelare", icon: "🪖", label: "Spelare", secs: ["s-vs", "s-card", "s-combat", "s-surv", "s-shame", "s-form", "s-trend", "s-all"] },
+  { id: "spelpass", icon: "📅", label: "Spelpass", secs: ["s-nights"] },
   { id: "matcher", icon: "🎮", label: "Matcher", secs: ["s-log", "s-duos", "s-nemesis", "s-modes"] },
-  { id: "vapen-kartor", icon: "🗺️", label: "Vapen och kartor", secs: ["s-guns", "s-maps", "s-geo"] },
+  { id: "vapen-kartor", icon: "🗺️", label: "Vapen & kartor", secs: ["s-guns", "s-maps", "s-geo"] },
 ];
 let setTab;
 (function buildNav() {
