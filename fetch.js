@@ -12,7 +12,7 @@ const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
 const MAX_NEW_MATCHES = 120;  // per körning, så första körningen inte tar evigheter
-const SCHEMA = 6;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const SCHEMA = 7;             // höj när nya fält läggs till, så sparade matcher hämtas om
 const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
 
@@ -174,13 +174,21 @@ async function updateHistory(players) {
       const asset = m.included.find(x => x.type === "asset");
       const tel = parseTelemetry(await free(asset.attributes.URL), ours);
 
+      // Lag (roster): vilket lag varje deltagare var i och lagets placering. Lagets placering används som
+      // "place", eftersom PUBG:s winPlace per spelare ibland skiljer sig inom samma lag.
+      const team = {};
+      for (const ro of m.included) {
+        if (ro.type !== "roster") continue;
+        for (const pd of ro.relationships?.participants?.data ?? []) team[pd.id] = { tid: ro.attributes?.stats?.teamId, rank: ro.attributes?.stats?.rank };
+      }
       const p = {};
       for (const x of m.included) {
         if (x.type !== "participant" || !ours.has(x.attributes.stats.playerId)) continue;
         const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [], ap: null, at: null };
         p[s.playerId] = {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
-          hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
+          hs: s.headshotKills, rev: s.revives, place: team[x.id]?.rank ?? s.winPlace, wp: s.winPlace, tid: team[x.id]?.tid ?? null,
+          surv: Math.round(s.timeSurvived),
           lk: Math.round(s.longestKill), dead: s.deathType === "alive" ? 0 : 1,
           knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv, ld: t.ld, dl: t.dl, kl: t.kl, ap: t.ap, at: t.at,
         };

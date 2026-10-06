@@ -1321,6 +1321,9 @@ function renderLog() {
   const open = new Set([...el.querySelectorAll("details[open]")].map(d => d.dataset.id));
   el.innerHTML = ms.slice(0, state.logN).map(m => {
     const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
+    // Olika lag: enligt lag-id om det finns, annars enligt placering (äldre matcher)
+    const hasTid = ids.every(id => m.p[id].tid != null);
+    const teams = hasTid ? [...new Set(ids.map(id => m.p[id].tid))] : [...new Set(ids.map(id => m.p[id].place))];
     const places = [...new Set(ids.map(id => m.p[id].place))].sort((a, b) => a - b);
     const best = places[0], d = new Date(m.t);
     const kills = sum(ids, id => m.p[id].k), dmg = sum(ids, id => m.p[id].dmg);
@@ -1329,7 +1332,7 @@ function renderLog() {
       <summary>
         <span class="m-when"><b>${WEEKDAY[d.getDay()]} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })}</b>${d.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}, ${mapName(m.map)}<br>${modeLabel(m.mode)}${isBotMatch(m) ? '<br><span class="botflag" title="Många bottar i lobbyn. Räknas inte med i statistiken.">🤖 BOTMATCH</span>' : ""}</span>
         <span class="m-who">${ids.map(id => `<span class="who">${avId(id, "xs")}${esc(nameOf(id))} <small>${m.p[id].k} kills</small></span>`).join("")}</span>
-        <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${places.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
+        <span class="m-place ${cls}">${best === 1 ? "🍗" : "#" + best}${teams.length > 1 ? `<small>olika lag: ${places.map(p => "#" + p).join(", ")}</small>` : ""}</span>
         <span class="m-kills"><b>${kills}</b>kills<br>${kfmt(dmg)} skada</span>
       </summary>
       <div class="m-body"></div>
