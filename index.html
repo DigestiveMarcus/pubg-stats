@@ -225,7 +225,7 @@
   .m-kills b { display: block; color: var(--sand); font-size: 1.15rem; }
   details.match.win > summary { box-shadow: inset 3px 0 0 var(--pan); }
   .m-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem 1.5rem; padding: 0.5rem 0.25rem 1.5rem; }
-  .m-body table { min-width: 44rem; }
+  .m-body table { min-width: 52rem; }
   .m-body td small { display: inline; }
   .m-mapwrap { max-width: 24rem; }
   .m-map { position: relative; aspect-ratio: 1; background: var(--ridge); border: 1px solid var(--line); }
@@ -1346,13 +1346,15 @@ function fillMatch(det) {
   body.dataset.done = 1;
   const ids = Object.keys(m.p).sort((a, b) => m.p[a].place - m.p[b].place || m.p[b].k - m.p[a].k);
   const favWeapon = s => { const e = Object.entries(s.w || {}).sort((a, b) => b[1] - a[1])[0]; return e ? weaponName(e[0]) : "–"; };
+  const left = s => !s.dead ? "–" : s.ap == null ? '<span style="color:var(--dust)">okänt</span>'
+    : `${s.ap} ${s.ap === 1 ? "spelare" : "spelare"}${s.at != null ? ` · ${s.at} ${s.at === 1 ? "lag" : "lag"}` : ""}`;
   const death = s => !s.dead ? "Överlevde" : s.kb ? `${esc(s.kb.n)}${s.kb.bot ? " (bot)" : ""}` : "Zonen eller okänt";
   const botInfo = isBotMatch(m) ? `<p class="botnote">🤖 <b>Botmatch</b> – ${m.np ? `${Math.round(m.ai / m.np * 100)} % av lobbyn (${m.ai} av ${m.np}) var bottar` : "nästan alla kills var på bottar"}. Matchen räknas inte i statistiken.</p>` : "";
   body.innerHTML = `${botInfo}<div class="scroll"><table>
-    <thead><tr><th>Spelare</th><th>Plac.</th><th>Kills</th><th>Assists</th><th>Knockar</th><th>Skada</th><th>Revives</th><th>Överlevde</th><th>Vapen</th><th>Dödad av</th></tr></thead>
+    <thead><tr><th>Spelare</th><th>Plac.</th><th>Kills</th><th>Assists</th><th>Knockar</th><th>Skada</th><th>Revives</th><th>Levde</th><th title="Hur många spelare och lag som levde när han dog">Kvar vid död</th><th>Vapen</th><th>Dödad av</th></tr></thead>
     <tbody>${ids.map(id => { const s = m.p[id]; return `<tr>
       <td><span class="who">${avId(id, "xs")}${esc(nameOf(id))}</span></td><td>#${s.place}</td><td>${s.k}</td><td>${s.a}</td><td>${s.dbno}</td>
-      <td>${s.dmg}</td><td>${s.rev}</td><td>${time(s.surv)}</td><td>${favWeapon(s)}</td><td>${death(s)}</td></tr>`; }).join("")}</tbody>
+      <td>${s.dmg}</td><td>${s.rev}</td><td>${time(s.surv)}</td><td>${left(s)}</td><td>${favWeapon(s)}</td><td>${death(s)}</td></tr>`; }).join("")}</tbody>
   </table></div>
   ${MAP_SIZE[m.map] ? `<div class="m-mapwrap"><div class="m-map"><canvas></canvas></div><p class="m-legend">● landning &nbsp; ✕ dödsfall &nbsp; · kill &nbsp; (inzoomat på matchens område)</p></div>` : ""}`;
   const cv = body.querySelector("canvas");

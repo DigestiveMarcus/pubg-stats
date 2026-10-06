@@ -12,7 +12,7 @@ const BASE = "https://api.pubg.com/shards/steam";
 const HEADERS = { Authorization: `Bearer ${KEY}`, Accept: "application/vnd.api+json" };
 const MODES = ["solo", "solo-fpp", "duo", "duo-fpp", "squad", "squad-fpp"];
 const MAX_NEW_MATCHES = 120;  // per körning, så första körningen inte tar evigheter
-const SCHEMA = 5;             // höj när nya fält läggs till, så sparade matcher hämtas om
+const SCHEMA = 6;             // höj när nya fält läggs till, så sparade matcher hämtas om
 const NOTIFY_WITHIN_H = 3;    // avisera bara vinster som är färskare än så här
 const names = JSON.parse(fs.readFileSync("players.json", "utf8"));
 
@@ -81,10 +81,14 @@ async function statsFor(seasonId, ids) {
 // hur många lagkompisar de själva har knockat eller dödat, samt var de landade, dog och tog kills.
 function parseTelemetry(tel, ours) {
   const r = {};
-  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [] });
+  const get = id => (r[id] ??= { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [], ap: null, at: null });
+  // Hur många som lever: senaste LogGameStatePeriodic (kommer ungefär var 10:e sekund) minus dödsfall sedan dess
+  let gs = null, deadSince = 0;
   const pos = l => l && l.x > 0 && l.y > 0 ? [Math.round(l.x / 100), Math.round(l.y / 100)] : null; // meter
   const sameTeam = (a, b) => a && b && a.teamId != null && a.teamId === b.teamId;
   for (const e of tel) {
+    if (e._T === "LogGameStatePeriodic") { gs = e.gameState; deadSince = 0; continue; }
+    if (e._T === "LogPlayerKillV2") deadSince++;
     if (e._T === "LogParachuteLanding") {
       const c = e.character;
       if (ours.has(c?.accountId) && !get(c.accountId).ld) get(c.accountId).ld = pos(c.location);
@@ -102,7 +106,11 @@ function parseTelemetry(tel, ours) {
       }
     } else if (e._T === "LogPlayerKillV2") {
       const k = e.killer?.accountId, v = e.victim?.accountId;
-      if (ours.has(v)) get(v).dl = pos(e.victim.location);
+      if (ours.has(v)) {
+        const me = get(v);
+        me.dl = pos(e.victim.location);
+        if (gs) { me.ap = Math.max(0, (gs.numAlivePlayers ?? 0) - deadSince); me.at = gs.numAliveTeams ?? null; } // kvar efter dödsfallet
+      }
       if (ours.has(v) && k && k !== v) get(v).kb = { n: e.killer.name, bot: k.startsWith("ai.") };
       // Teamkill: PUBG räknar den som gjorde slutskottet (finisher) eller fick killen (killer),
       // t.ex. när man skjuter ihjäl en lagkompis som redan är knockad av en fiende.
@@ -169,12 +177,12 @@ async function updateHistory(players) {
       const p = {};
       for (const x of m.included) {
         if (x.type !== "participant" || !ours.has(x.attributes.stats.playerId)) continue;
-        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [] };
+        const s = x.attributes.stats, t = tel[s.playerId] ?? { knocked: 0, tk: 0, bk: 0, w: {}, wd: {}, kb: null, tkn: 0, tkl: 0, tkv: {}, ld: null, dl: null, kl: [], ap: null, at: null };
         p[s.playerId] = {
           k: s.kills, dmg: Math.round(s.damageDealt), dbno: s.DBNOs, a: s.assists,
           hs: s.headshotKills, rev: s.revives, place: s.winPlace, surv: Math.round(s.timeSurvived),
           lk: Math.round(s.longestKill), dead: s.deathType === "alive" ? 0 : 1,
-          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv, ld: t.ld, dl: t.dl, kl: t.kl,
+          knocked: t.knocked, tk: t.tk, bk: t.bk, w: t.w, wd: t.wd, kb: t.kb, tkn: t.tkn, tkl: t.tkl, tkv: t.tkv, ld: t.ld, dl: t.dl, kl: t.kl, ap: t.ap, at: t.at,
         };
       }
       const isNew = !hist.matches[id];
