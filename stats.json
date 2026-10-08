@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-08T15:36:31.782Z",
+ "updated": "2026-10-08T15:53:23.140Z",
  "season": "division.bro.official.pc-2018-43",
  "players": [
   {
@@ -2723,9 +2723,9 @@
  },
  "status": {
   "account.84af3ee630b548609896376f2733385e": {
-   "online": true,
-   "last": "2026-10-08T15:07:32Z",
-   "lastEnd": "2026-10-08T15:22:20.000Z"
+   "online": false,
+   "last": "2026-10-08T15:24:20Z",
+   "lastEnd": "2026-10-08T15:27:06.000Z"
   },
   "account.070de68f812c4532b018aadbc9ef44b4": {
    "online": false,
@@ -2748,9 +2748,9 @@
    "lastEnd": "2026-10-06T20:17:19.000Z"
   },
   "account.5f8ad53ff61f426a831ae4b42dd36a24": {
-   "online": true,
-   "last": "2026-10-08T15:07:32Z",
-   "lastEnd": "2026-10-08T15:22:20.000Z"
+   "online": false,
+   "last": "2026-10-08T15:24:20Z",
+   "lastEnd": "2026-10-08T15:27:20.000Z"
   }
  }
 }
