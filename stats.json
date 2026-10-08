@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-08T18:39:55.489Z",
+ "updated": "2026-10-08T19:02:00.385Z",
  "season": "division.bro.official.pc-2018-43",
  "players": [
   {
@@ -256,7 +256,7 @@
    "solo-fpp": {
     "account.84af3ee630b548609896376f2733385e": {
      "assists": 0,
-     "boosts": 67,
+     "boosts": 68,
      "dBNOs": 1,
      "dailyKills": 11,
      "dailyWins": 0,
@@ -268,7 +268,7 @@
      "kills": 32,
      "longestKill": 218.73543,
      "longestTimeSurvived": 1703,
-     "losses": 27,
+     "losses": 28,
      "maxKillStreaks": 1,
      "mostSurvivalTime": 1703,
      "rankPoints": 0,
@@ -277,15 +277,15 @@
      "rideDistance": 31247.695,
      "roadKills": 0,
      "roundMostKills": 6,
-     "roundsPlayed": 27,
+     "roundsPlayed": 28,
      "suicides": 0,
      "swimDistance": 88.58424,
      "teamKills": 0,
-     "timeSurvived": 14939,
+     "timeSurvived": 15151,
      "top10s": 7,
      "vehicleDestroys": 0,
-     "walkDistance": 29072.309,
-     "weaponsAcquired": 198,
+     "walkDistance": 29276.332,
+     "weaponsAcquired": 202,
      "weeklyKills": 11,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -1602,7 +1602,7 @@
    "solo-fpp": {
     "account.84af3ee630b548609896376f2733385e": {
      "assists": 2,
-     "boosts": 136,
+     "boosts": 137,
      "dBNOs": 1,
      "dailyKills": 11,
      "dailyWins": 0,
@@ -1614,7 +1614,7 @@
      "kills": 66,
      "longestKill": 243.99008,
      "longestTimeSurvived": 1820.32,
-     "losses": 61,
+     "losses": 62,
      "maxKillStreaks": 1,
      "mostSurvivalTime": 1820.32,
      "rankPoints": 0,
@@ -1623,15 +1623,15 @@
      "rideDistance": 38829.062,
      "roadKills": 0,
      "roundMostKills": 6,
-     "roundsPlayed": 61,
+     "roundsPlayed": 62,
      "suicides": 0,
      "swimDistance": 173.73929,
      "teamKills": 0,
-     "timeSurvived": 35306.87,
+     "timeSurvived": 35518.87,
      "top10s": 10,
      "vehicleDestroys": 1,
-     "walkDistance": 63374.71,
-     "weaponsAcquired": 393,
+     "walkDistance": 63578.734,
+     "weaponsAcquired": 397,
      "weeklyKills": 11,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -2723,9 +2723,9 @@
  },
  "status": {
   "account.84af3ee630b548609896376f2733385e": {
-   "online": true,
-   "last": "2026-10-08T18:03:01Z",
-   "lastEnd": "2026-10-08T18:23:47.000Z"
+   "online": false,
+   "last": "2026-10-08T18:26:43Z",
+   "lastEnd": "2026-10-08T18:29:14.000Z"
   },
   "account.070de68f812c4532b018aadbc9ef44b4": {
    "online": false,
