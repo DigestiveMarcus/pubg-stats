@@ -443,9 +443,9 @@
 
   <section id="s-streaks" data-nav="Svit och torka">
     <h2>Svit och torka</h2>
-    <p class="note">Pågående och längsta sviter, från matchhistoriken. Topp 10-svit = matcher i rad på topp 10. Torka = matcher i rad utan kill. Vinster i rad = chicken dinners i rad.</p>
+    <p class="note">Pågående och längsta sviter, från matchhistoriken. Topp 10-svit = matcher i rad på topp 10. Torka = matcher i rad utan kill. Vinster i rad = chicken dinners i rad. Dagar i rad = dagar i följd med minst en match (alla lägen räknas).</p>
     <div class="tiles streak-top" id="streakTop"></div>
-    <div class="scroll"><table id="streaks" style="min-width:56rem"></table></div>
+    <div class="scroll"><table id="streaks" style="min-width:66rem"></table></div>
   </section>
 
   <section id="s-vs">
@@ -942,6 +942,33 @@ function renderAwards(list) {
   document.getElementById("awards").innerHTML = (tiles + clutchTiles(list) + mvpTiles(list) + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
 }
 
+// 🤓 Veckans nörd: flest matcher de senaste 7 dagarna, alla matcher räknas (även solo och botmatcher)
+function nerdTile() {
+  const since = Date.now() - 7 * 864e5, cnt = {}, days = {};
+  for (const m of Object.values(history.matches)) if (Date.parse(m.t) >= since) for (const id of Object.keys(m.p)) {
+    cnt[id] = (cnt[id] || 0) + 1; (days[id] ??= new Set()).add(dayKey(m.t));
+  }
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1] || days[b[0]].size - days[a[0]].size)[0];
+  if (!top) return `<div class="tile"><span class="t-head">🤓 Veckans nörd</span><span class="t-val">Ingen har spelat den här veckan.</span></div>`;
+  return `<div class="tile gold"><span class="t-head">🤓 Veckans nörd</span><span class="big">${top[1]}</span>
+    <span class="t-who">${avId(top[0], "sm")}${esc(nameOf(top[0]))}</span>
+    <span class="t-val">matcher senaste 7 dagarna, spelade ${days[top[0]].size} av 7 dagar</span></div>`;
+}
+
+// Spelade dagar per spelare (alla matcher, även solo och botmatcher). Matcher före kl. 5 räknas till dagen innan.
+const dayKey = t => new Date(Date.parse(t) - 5 * 36e5).toLocaleDateString("sv-SE");
+function playDays(id) {
+  return [...new Set(Object.values(history.matches).filter(m => m.p[id]).map(m => dayKey(m.t)))].sort();
+}
+function dayStreaks(id) {
+  const days = playDays(id), dnum = d => Math.round(Date.parse(d + "T12:00:00") / 864e5);
+  let best = 0, run = 0, prev = null;
+  for (const d of days) { const n = dnum(d); run = prev != null && n === prev + 1 ? run + 1 : 1; best = Math.max(best, run); prev = n; }
+  const today = dnum(dayKey(new Date().toISOString()));
+  const now = prev != null && today - prev <= 1 ? run : 0; // pågår om man spelat i dag eller i går
+  return { now, best };
+}
+
 function renderWeek() {
   const since = Date.now() - 7 * 864e5;
   const all = Object.values(history.matches).filter(m => !isBotMatch(m)).sort((a, b) => b.t.localeCompare(a.t));
@@ -969,7 +996,7 @@ function renderWeek() {
     : `<div class="tile"><span class="t-head">🍗 Senaste chicken dinner</span><span class="t-val">Ingen vinst i historiken än. Dags att ändra på det.</span></div>`;
   el.innerHTML = tile("Flest kills i en match", best(s => s.k), v => v) +
     tile("Mest skada i en match", best(s => s.dmg), v => v) +
-    tile("Längsta kill", best(s => s.lk), v => v + " m") + winTile +
+    tile("Längsta kill", best(s => s.lk), v => v + " m") + winTile + nerdTile() +
     `<div class="tile"><span class="t-head">Matcher denna vecka</span><span class="big">${week.length}</span><span class="t-val">med minst en från gänget</span></div>`;
 }
 
@@ -1050,6 +1077,8 @@ function renderStreaks(list) {
   const pick = f => { const mx = Math.max(...withH.map(f)); return mx > 0 ? withH.filter(x => f(x) === mx) : []; };
   const hot = pick(x => x.s.top), cold = pick(x => x.s.dry), best = pick(x => x.s.bestTop), dry = pick(x => x.s.worstDry);
   const winRun = pick(x => x.s.bestWins), winNow = pick(x => x.s.wins);
+  withH.forEach(x => { const d = dayStreaks(x.r.id); x.s.daysNow = d.now; x.s.daysBest = d.best; });
+  const dayNow = pick(x => x.s.daysNow), dayBest = pick(x => x.s.daysBest);
   const wins = withH.filter(x => x.s.lastWin).sort((a, b) => b.s.lastWin.t.localeCompare(a.s.lastWin.t));
   const lastWinners = wins.length ? wins.filter(x => x.s.lastWin.t === wins[0].s.lastWin.t) : [];
   const who = xs => `<span class="avs">${xs.slice(0, 5).map(x => avatar(x.r, "sm")).join("")}</span>` +
@@ -1066,9 +1095,11 @@ function renderStreaks(list) {
     (best.length ? tile("gold", "Längsta topp 10-svit", best[0].s.bestTop, best, "matcher i rad") : "") +
     (dry.length ? tile("shame", "Längsta torkan", dry[0].s.worstDry, dry, "matcher i rad utan kill") : "") +
     (winRun.length ? tile("gold", "🍗 Flest vinster i rad", winRun[0].s.bestWins, winRun,
-      `${n(winRun[0].s.bestWins, "vinst", "vinster")} i rad${winNow.length && winNow[0].s.wins > 1 ? ` · just nu: ${winNow.map(x => esc(x.r.name)).join(" & ")} på ${winNow[0].s.wins} i rad` : ""}`) : "");
+      `${n(winRun[0].s.bestWins, "vinst", "vinster")} i rad${winNow.length && winNow[0].s.wins > 1 ? ` · just nu: ${winNow.map(x => esc(x.r.name)).join(" & ")} på ${winNow[0].s.wins} i rad` : ""}`) : "") +
+    (dayNow.length ? tile("gold", "📆 Flest dagar i rad just nu", dayNow[0].s.daysNow, dayNow, `${n(dayNow[0].s.daysNow, "dag", "dagar")} i rad med minst en match`) : "") +
+    (dayBest.length ? tile("gold", "📆 Längsta dagsvit", dayBest[0].s.daysBest, dayBest, "dagar i rad med minst en match") : "");
   const mx = k => Math.max(...withH.map(x => x.s[k]));
-  t.innerHTML = `<thead><tr><th>Spelare</th><th>Senaste vinst</th><th>Matcher sedan vinst</th><th>Topp 10-svit nu</th><th>Bästa topp 10-svit</th><th>Utan kill nu</th><th>Längsta torka</th><th>Vinster i rad nu</th><th>Flest vinster i rad</th></tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th>Spelare</th><th>Senaste vinst</th><th>Matcher sedan vinst</th><th>Topp 10-svit nu</th><th>Bästa topp 10-svit</th><th>Utan kill nu</th><th>Längsta torka</th><th>Vinster i rad nu</th><th>Flest vinster i rad</th><th>Dagar i rad nu</th><th>Längsta dagsvit</th></tr></thead><tbody>` +
     withH.sort((a, b) => b.s.top - a.s.top || a.s.dry - b.s.dry).map(({ r, s }) => `<tr>
       <td><span class="who">${avatar(r, "xs")}${esc(r.name)}</span></td>
       <td>${s.lastWin ? ago(s.lastWin) : "–"}</td>
@@ -1078,7 +1109,9 @@ function renderStreaks(list) {
       <td class="${s.dry && s.dry === mx("dry") ? "cold" : ""}">${s.dry}</td>
       <td class="${s.worstDry === mx("worstDry") ? "cold" : ""}">${s.worstDry}</td>
       <td class="${s.wins && s.wins === mx("wins") ? "hot" : ""}">${s.wins}</td>
-      <td class="${s.bestWins && s.bestWins === mx("bestWins") ? "hot" : ""}">${s.bestWins}</td></tr>`).join("") + "</tbody>";
+      <td class="${s.bestWins && s.bestWins === mx("bestWins") ? "hot" : ""}">${s.bestWins}</td>
+      <td class="${s.daysNow && s.daysNow === mx("daysNow") ? "hot" : ""}">${s.daysNow}</td>
+      <td class="${s.daysBest && s.daysBest === mx("daysBest") ? "hot" : ""}">${s.daysBest}</td></tr>`).join("") + "</tbody>";
 }
 
 function renderVs(list) {
