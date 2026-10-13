@@ -1071,7 +1071,9 @@ function renderStreaks(list) {
   const withH = list.filter(r => r.h.length).map(r => ({ r, s: streaksFor(r.h) }));
   const t = document.getElementById("streaks"), topEl = document.getElementById("streakTop");
   if (!withH.length) { t.innerHTML = `<tr><td class="msg">${NO_HIST}</td></tr>`; topEl.innerHTML = ""; return; }
-  const days = w => Math.floor((Date.now() - Date.parse(w.t)) / 864e5);
+  // Kalenderdagar i lokal tid (inte 24-timmarsperioder), så att en vinst i går kväll blir "igår" även på förmiddagen
+  const days = w => { const d = new Date(w.t), now = new Date();
+    return Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5); };
   const ago = w => { const d = days(w); return d === 0 ? "idag" : d === 1 ? "igår" : `${d} dagar sedan`; };
   // Alla som delar högsta värdet
   const pick = f => { const mx = Math.max(...withH.map(f)); return mx > 0 ? withH.filter(x => f(x) === mx) : []; };
