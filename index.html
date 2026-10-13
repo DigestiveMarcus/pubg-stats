@@ -365,7 +365,7 @@
   .luck-conf .bar { width: 5rem; height: 0.4rem; background: var(--line); border-radius: 999px; overflow: hidden; }
   .luck-conf .bar i { display: block; height: 100%; background: var(--sand); }
   .tile .t-head { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
-  .luck-stats { display: grid; grid-template-columns: repeat(4, auto); gap: 0.2rem 0.9rem; margin-top: 0.4rem; justify-content: start; }
+  .luck-stats { display: grid; grid-template-columns: repeat(3, auto); gap: 0.2rem 0.9rem; margin-top: 0.4rem; justify-content: start; }
   .luck-stats span { display: flex; flex-direction: column; color: var(--dust); font-size: 0.75rem; }
   .luck-stats b { font: 900 1.35rem/1 var(--display); color: var(--sand); }
   details.info { display: inline-block; position: relative; margin-left: auto; }
@@ -874,51 +874,45 @@ function renderRanking(list) {
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>') + rookieNote;
 }
 
-// Lyckoamuletten / Sänket: hur bra squaden gör i snitt när spelaren är med.
-// Fyra mått per squadmatch: topp 10, vinst, squadens skada och kills (snitt per gängmedlem × 4, så att det inte
-// spelar roll hur många från gänget som var med). Varje mått jämförs mot gänget (standardpoäng) och vägs lika.
-// Bäst snitt = Lyckoamuletten, sämst = Sänket. Botmatcher räknas inte, minst LUCK_MIN squadmatcher.
-const LUCK_MIN = 30;
+// Lyckoamuletten / Sänket: hur det går för laget i squad när spelaren är med. Bara lagresultat, inga egna kills
+// eller egen skada, så att titlarna mäter påverkan på laget och inte ens eget spel.
+// Topp 10 väger 70 % och vinster 30 % (vinster är få och mer slumpartade). Varje mått jämförs mot gänget.
+// Bäst = Lyckoamuletten, sämst = Sänket. Botmatcher räknas inte, minst LUCK_MIN squadmatcher.
+const LUCK_MIN = 30, LUCK_W = { top10: 0.7, win: 0.3 };
 function luckData(list) {
   const squad = state.view === "fpp" ? "squad-fpp" : "squad";
   const ms = Object.values(history.matches).filter(m => m.mode === squad && !isBotMatch(m));
   const res = list.map(r => {
     const mine = ms.filter(m => m.p[r.id]);
     if (mine.length < LUCK_MIN) return null;
-    let t10 = 0, win = 0, dmg = 0, k = 0;
-    for (const m of mine) {
-      const ps = Object.values(m.p), best = Math.min(...ps.map(s => s.place));
-      t10 += best <= 10; win += best === 1;
-      dmg += sum(ps, s => s.dmg) / ps.length * 4; k += sum(ps, s => s.k) / ps.length * 4;
-    }
+    let t10 = 0, win = 0, pl = 0;
+    for (const m of mine) { const best = Math.min(...Object.values(m.p).map(s => s.place)); t10 += best <= 10; win += best === 1; pl += best; }
     const n = mine.length;
-    return { r, n, top10: t10 / n, win: win / n, dmg: dmg / n, kills: k / n };
+    return { r, n, top10: t10 / n, win: win / n, place: pl / n };
   }).filter(Boolean);
-  const keys = ["top10", "win", "dmg", "kills"];
-  for (const key of keys) {
+  for (const key of Object.keys(LUCK_W)) {
     const vals = res.map(x => x[key]), mu = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
     const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mu) ** 2, 0) / (vals.length || 1)) || 1;
     res.forEach(x => (x.z ??= {})[key] = (x[key] - mu) / sd);
   }
-  res.forEach(x => x.score = keys.reduce((a, key) => a + x.z[key], 0) / keys.length);
+  res.forEach(x => x.score = Object.entries(LUCK_W).reduce((a, [key, w]) => a + w * x.z[key], 0));
   return res.sort((a, b) => b.score - a.score);
 }
 function luckTiles(list) {
   const res = luckData(list);
   if (res.length < 2) return "";
-  const pc = v => Math.round(v * 100) + "&nbsp;%";
-  const line = x => `<span class="luck-stats"><span><b>${pc(x.top10)}</b>topp 10</span><span><b>${pc(x.win)}</b>vinster</span><span><b>${Math.round(x.dmg)}</b>skada</span><span><b>${x.kills.toFixed(1).replace(".", ",")}</b>kills</span></span>`;
+  const pc = v => (Math.round(v * 1000) / 10).toString().replace(".", ",") + "&nbsp;%";
+  const line = x => `<span class="luck-stats"><span><b>${pc(x.top10)}</b>topp 10</span><span><b>${pc(x.win)}</b>vinster</span><span><b>#${x.place.toFixed(1).replace(".", ",")}</b>snittplac.</span></span>`;
   const info = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
-    <div class="info-body"><p>Snittet för squaden i alla squadmatcher där spelaren är med (sedan start, utan botmatcher, minst ${LUCK_MIN} matcher):
-    hur ofta laget når topp 10, hur ofta det vinner, och hur mycket skada och hur många kills squaden gör.
-    Skada och kills räknas som snitt per spelare från gänget × 4, så att det inte spelar roll hur många av er som var med.</p>
-    <p>Varje mått jämförs mot gänget och de fyra vägs lika. Bäst snitt blir Lyckoamuletten, sämst blir Sänket.</p>
-    <table><thead><tr><th>Spelare</th><th>Topp 10</th><th>Vinster</th><th>Skada</th><th>Kills</th><th>Squads</th></tr></thead><tbody>
-    ${res.map(x => `<tr><td>${esc(x.r.name)}</td><td>${pc(x.top10)}</td><td>${pc(x.win)}</td><td>${Math.round(x.dmg)}</td><td>${x.kills.toFixed(1).replace(".", ",")}</td><td>${x.n}</td></tr>`).join("")}
+    <div class="info-body"><p>Hur det går för laget i alla squadmatcher där spelaren är med (sedan start, utan botmatcher, minst ${LUCK_MIN} matcher).
+    Bara lagresultat räknas, inte spelarens egna kills eller skada, så titlarna handlar om påverkan på laget.</p>
+    <p>Topp 10 väger 70 % och vinster 30 %, eftersom vinster är få och mer slumpartade. Bäst blir Lyckoamuletten, sämst blir Sänket. Snittplaceringen visas bara som info.</p>
+    <table><thead><tr><th>Spelare</th><th>Topp 10</th><th>Vinster</th><th>Snittplac.</th><th>Squads</th></tr></thead><tbody>
+    ${res.map(x => `<tr><td>${esc(x.r.name)}</td><td>${pc(x.top10)}</td><td>${pc(x.win)}</td><td>#${x.place.toFixed(1).replace(".", ",")}</td><td>${x.n}</td></tr>`).join("")}
     </tbody></table></div></details>`;
   const tile = (x, cls, icon, name) => `<div class="tile luck ${cls}"><span class="t-head">${icon} ${name} ${info}</span>
     <span class="t-who">${avatar(x.r, "sm")}${esc(x.r.name)}</span>
-    <span class="t-val">Squaden i snitt när han är med:</span>${line(x)}</div>`;
+    <span class="t-val">Laget i squad när han är med:</span>${line(x)}</div>`;
   return tile(res[0], "gold", "🍀", "Lyckoamuletten") + tile(res.at(-1), "shame", "🪨", "Sänket");
 }
 
