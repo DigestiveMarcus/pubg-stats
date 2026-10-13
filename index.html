@@ -361,6 +361,22 @@
   .n-table tr.mvp-row td { color: var(--pan); }
   .n-table tr.mvp-row td:first-child { font-weight: 600; }
   @media (max-width: 44rem) { .n-head { grid-template-columns: 1fr; } }
+  .luck-conf { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--dust); }
+  .luck-conf .bar { width: 5rem; height: 0.4rem; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .luck-conf .bar i { display: block; height: 100%; background: var(--sand); }
+  .tile .t-head { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+  .luck-stats { display: grid; grid-template-columns: repeat(4, auto); gap: 0.2rem 0.9rem; margin-top: 0.4rem; justify-content: start; }
+  .luck-stats span { display: flex; flex-direction: column; color: var(--dust); font-size: 0.75rem; }
+  .luck-stats b { font: 900 1.35rem/1 var(--display); color: var(--sand); }
+  details.info { display: inline-block; position: relative; margin-left: auto; }
+  details.info > summary { list-style: none; cursor: pointer; width: 1.4rem; height: 1.4rem; display: grid; place-items: center;
+    border: 1px solid var(--line); border-radius: 50%; color: var(--dust); font-size: 0.85rem; }
+  details.info > summary::-webkit-details-marker { display: none; }
+  details.info[open] > summary, details.info > summary:hover { color: var(--sand); border-color: var(--pan); }
+  .info-body { position: absolute; z-index: 20; right: 0; top: 1.8rem; width: min(26rem, 80vw); padding: 0.9rem 1rem; border-radius: 6px;
+    background: var(--ridge); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.45); color: var(--sand); font-size: 0.85rem; }
+  .info-body p { margin: 0 0 0.6rem; line-height: 1.45; }
+  .info-body table { font-size: 0.8rem; } .info-body th, .info-body td { padding: 0.3rem 0.35rem; }
 </style>
 </head>
 <body>
@@ -858,51 +874,52 @@ function renderRanking(list) {
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>') + rookieNote;
 }
 
-// Lyckoamuletten / Sänket, så rättvist som möjligt:
-// - Bara squad (i duo är det samma sak som "Bästa duon").
-// - Parvis: för varje lagkompis Y jämförs Y:s squadmatcher MED spelaren mot Y:s squadmatcher UTAN spelaren,
-//   så att det inte är någon annans styrka som avgör. Paren vägs ihop efter hur mycket data de har.
-// - Mått: andel matcher där laget når topp 10. Botmatcher räknas inte.
-// - Titeln delas bara ut om skillnaden är tydligt större än slumpen (ungefär 90 % säkerhet).
-const PAIR_MIN = 10, LUCK_Z = 1.64;
+// Lyckoamuletten / Sänket: hur bra squaden gör i snitt när spelaren är med.
+// Fyra mått per squadmatch: topp 10, vinst, squadens skada och kills (snitt per gängmedlem × 4, så att det inte
+// spelar roll hur många från gänget som var med). Varje mått jämförs mot gänget (standardpoäng) och vägs lika.
+// Bäst snitt = Lyckoamuletten, sämst = Sänket. Botmatcher räknas inte, minst LUCK_MIN squadmatcher.
+const LUCK_MIN = 30;
 function luckData(list) {
   const squad = state.view === "fpp" ? "squad-fpp" : "squad";
-  const ms = Object.values(history.matches).filter(m => m.mode === squad && !isBotMatch(m) && Object.keys(m.p).length >= 2);
-  const top = m => Math.min(...Object.values(m.p).map(s => s.place)) <= 10;
-  const allIds = data.players.map(p => p.id);
-  return list.map(r => {
-    let W = 0, D = 0, V = 0, A = 0, B = 0, pairs = 0; const used = new Set();
-    for (const y of allIds) {
-      if (y === r.id) continue;
-      const withY = ms.filter(m => m.p[y]);
-      const w = withY.filter(m => m.p[r.id]), wo = withY.filter(m => !m.p[r.id]);
-      if (w.length < PAIR_MIN || wo.length < PAIR_MIN) continue;
-      // Andelar med liten utjämning (+1/+2) så att 0 % och 100 % inte blir extremt säkra
-      const pw = (w.filter(top).length + 1) / (w.length + 2), po = (wo.filter(top).length + 1) / (wo.length + 2);
-      const wt = w.length * wo.length / (w.length + wo.length);
-      W += wt; D += wt * (pw - po); A += wt * pw; B += wt * po;
-      V += wt * wt * (pw * (1 - pw) / w.length + po * (1 - po) / wo.length);
-      w.concat(wo).forEach(m => used.add(m)); pairs++;
+  const ms = Object.values(history.matches).filter(m => m.mode === squad && !isBotMatch(m));
+  const res = list.map(r => {
+    const mine = ms.filter(m => m.p[r.id]);
+    if (mine.length < LUCK_MIN) return null;
+    let t10 = 0, win = 0, dmg = 0, k = 0;
+    for (const m of mine) {
+      const ps = Object.values(m.p), best = Math.min(...ps.map(s => s.place));
+      t10 += best <= 10; win += best === 1;
+      dmg += sum(ps, s => s.dmg) / ps.length * 4; k += sum(ps, s => s.k) / ps.length * 4;
     }
-    if (!W) return null;
-    const diff = D / W, se = Math.sqrt(V) / W;
-    return { r, diff, z: diff / se, with: A / W, without: B / W, pairs, n: used.size };
+    const n = mine.length;
+    return { r, n, top10: t10 / n, win: win / n, dmg: dmg / n, kills: k / n };
   }).filter(Boolean);
+  const keys = ["top10", "win", "dmg", "kills"];
+  for (const key of keys) {
+    const vals = res.map(x => x[key]), mu = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
+    const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mu) ** 2, 0) / (vals.length || 1)) || 1;
+    res.forEach(x => (x.z ??= {})[key] = (x[key] - mu) / sd);
+  }
+  res.forEach(x => x.score = keys.reduce((a, key) => a + x.z[key], 0) / keys.length);
+  return res.sort((a, b) => b.score - a.score);
 }
 function luckTiles(list) {
   const res = luckData(list);
+  if (res.length < 2) return "";
   const pc = v => Math.round(v * 100) + "&nbsp;%";
-  const tile = (x, cls, icon, name, lead) => `<div class="tile luck ${cls}"><span class="t-head">${icon} ${name}</span>
+  const line = x => `<span class="luck-stats"><span><b>${pc(x.top10)}</b>topp 10</span><span><b>${pc(x.win)}</b>vinster</span><span><b>${Math.round(x.dmg)}</b>skada</span><span><b>${x.kills.toFixed(1).replace(".", ",")}</b>kills</span></span>`;
+  const info = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
+    <div class="info-body"><p>Snittet för squaden i alla squadmatcher där spelaren är med (sedan start, utan botmatcher, minst ${LUCK_MIN} matcher):
+    hur ofta laget når topp 10, hur ofta det vinner, och hur mycket skada och hur många kills squaden gör.
+    Skada och kills räknas som snitt per spelare från gänget × 4, så att det inte spelar roll hur många av er som var med.</p>
+    <p>Varje mått jämförs mot gänget och de fyra vägs lika. Bäst snitt blir Lyckoamuletten, sämst blir Sänket.</p>
+    <table><thead><tr><th>Spelare</th><th>Topp 10</th><th>Vinster</th><th>Skada</th><th>Kills</th><th>Squads</th></tr></thead><tbody>
+    ${res.map(x => `<tr><td>${esc(x.r.name)}</td><td>${pc(x.top10)}</td><td>${pc(x.win)}</td><td>${Math.round(x.dmg)}</td><td>${x.kills.toFixed(1).replace(".", ",")}</td><td>${x.n}</td></tr>`).join("")}
+    </tbody></table></div></details>`;
+  const tile = (x, cls, icon, name) => `<div class="tile luck ${cls}"><span class="t-head">${icon} ${name} ${info}</span>
     <span class="t-who">${avatar(x.r, "sm")}${esc(x.r.name)}</span>
-    <span class="t-val">${lead}</span>
-    <span class="luck-row"><span><b>${pc(x.with)}</b>med ${esc(x.r.name)}</span><span><b>${pc(x.without)}</b>utan</span></span>
-    <span class="t-val">av squadmatcherna når samma lagkompisar topp 10. Jämfört via ${x.pairs} ${x.pairs === 1 ? "kompis" : "kompisar"} i ${x.n} squadmatcher.</span></div>`;
-  const none = (icon, name) => `<div class="tile luck"><span class="t-head">${icon} ${name}</span>
-    <span class="t-val" style="margin-top:.35rem">Ingen tydlig skillnad än. Delas ut när det finns tillräckligt många squadmatcher med och utan varje spelare.</span></div>`;
-  const good = res.filter(x => x.z >= LUCK_Z).sort((a, b) => b.diff - a.diff)[0];
-  const bad = res.filter(x => x.z <= -LUCK_Z).sort((a, b) => a.diff - b.diff)[0];
-  return (good ? tile(good, "gold", "🍀", "Lyckoamuletten", "Laget når topp 10 oftare när han är med") : none("🍀", "Lyckoamuletten")) +
-         (bad ? tile(bad, "shame", "🪨", "Sänket", "Laget når topp 10 mer sällan när han är med") : none("🪨", "Sänket"));
+    <span class="t-val">Squaden i snitt när han är med:</span>${line(x)}</div>`;
+  return tile(res[0], "gold", "🍀", "Lyckoamuletten") + tile(res.at(-1), "shame", "🪨", "Sänket");
 }
 
 function renderAwards(list) {
@@ -928,7 +945,7 @@ function renderAwards(list) {
     return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
       <span class="t-who">${top}</span><span class="t-val">${val}</span></div>`;
   }).join("");
-  document.getElementById("awards").innerHTML = (tiles + clutchTiles(list) + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
+  document.getElementById("awards").innerHTML = (tiles + clutchTiles(list) + mvpTiles(list) + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
 }
 
 function renderWeek() {
@@ -1416,6 +1433,33 @@ function nightLabel(first) {
   const [icon, part] = DAYPART(first.getHours());
   return `${icon} ${w[0].toUpperCase() + w.slice(1)} ${d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" })} · ${part}`;
 }
+// MVP och snitt för ett spelpass (samma regler som i Spelpass-fliken)
+function sessionMvp(ss) {
+  const real = ss.filter(m => !isBotMatch(m)), per = {};
+  for (const m of real) for (const [id, s] of Object.entries(m.p)) {
+    const x = (per[id] ??= { n: 0, pts: 0, k: 0, dmg: 0 }); x.n++; x.pts += s.k + s.dmg / 100 + placePts(s.place); x.k += s.k; x.dmg += s.dmg;
+  }
+  const minN = Math.max(3, Math.ceil(real.length / 2));
+  const best = Object.entries(per).filter(([, x]) => x.n >= minN).sort((a, b) => b[1].pts / b[1].n - a[1].pts / a[1].n)[0];
+  return best ? { id: best[0], avg: best[1].pts / best[1].n, n: best[1].n, k: best[1].k, dmg: best[1].dmg, first: new Date(ss.at(-1).t) } : null;
+}
+function mvpTiles(list) {
+  const ids = new Set(list.map(r => r.id));
+  const ms = filteredMatches({ bots: true }).filter(m => !m.mode.startsWith("solo") && Object.keys(m.p).length >= 2).reverse();
+  const mvps = sessionsOf(ms).map(sessionMvp).filter(x => x && ids.has(x.id));
+  if (!mvps.length) return "";
+  const r = id => list.find(x => x.id === id), f = v => v.toFixed(1).replace(".", ",");
+  const cnt = {}; mvps.forEach(x => cnt[x.id] = (cnt[x.id] || 0) + 1);
+  const top = Math.max(...Object.values(cnt)), leaders = Object.keys(cnt).filter(id => cnt[id] === top);
+  const rec = [...mvps].sort((a, b) => b.avg - a.avg)[0];
+  return `<div class="tile gold"><span class="t-head">⭐ MVP-samlaren</span>
+      <span class="t-who"><span class="avs">${leaders.slice(0, 4).map(id => avatar(r(id), "sm")).join("")}</span>${leaders.length > 2 ? `Delad mellan ${leaders.length}` : leaders.map(id => esc(r(id).name)).join(" & ")}</span>
+      <span class="t-val">Passets MVP ${top} av ${mvps.length} spelpass${leaders.length > 1 ? " var" : ""}.</span></div>` +
+    `<div class="tile gold"><span class="t-head">🔥 Rekordpasset</span>
+      <span class="t-who">${avatar(r(rec.id), "sm")}${esc(r(rec.id).name)}</span>
+      <span class="t-val">${f(rec.avg)} MVP-poäng per match, ${nightLabel(rec.first).replace(/^\S+ /, "")}: ${rec.k} kills och ${kfmt(rec.dmg)} skada på ${rec.n} matcher.</span></div>`;
+}
+
 function nightCard(ss, latest) {
   const real = ss.filter(m => !isBotMatch(m));
   const first = new Date(ss.at(-1).t), last = new Date(ss[0].t);
