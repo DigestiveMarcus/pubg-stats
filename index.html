@@ -368,6 +368,9 @@
   .luck-stats { display: grid; grid-template-columns: repeat(3, auto); gap: 0.2rem 0.9rem; margin-top: 0.4rem; justify-content: start; }
   .luck-stats span { display: flex; flex-direction: column; color: var(--dust); font-size: 0.75rem; }
   .luck-stats b { font: 900 1.35rem/1 var(--display); color: var(--sand); }
+  .trend { font-size: 0.95rem; font-weight: 700; margin-left: 0.3rem; line-height: 1; }
+  .trend.up { color: var(--sage); }
+  .trend.down { color: var(--blood); }
   details.info { display: inline-block; position: relative; margin-left: auto; }
   details.info > summary { list-style: none; cursor: pointer; width: 1.4rem; height: 1.4rem; display: grid; place-items: center;
     border: 1px solid var(--line); border-radius: 50%; color: var(--dust); font-size: 0.85rem; }
@@ -743,6 +746,7 @@ function derive(s, h) {
   // Dödade lagkompisar från vald period (samma som i Skamvrån), knockade från matchhistoriken
   v.betray = v.teamKills + (v.teamKnocks || 0);
   if (h.length) { v.knocked = sum(h, m => m.knocked); v.knockedPm = v.knocked / h.length; }
+  v.timePlayed = sum(h, m => m.surv || 0);
   const hb = h.filter(m => m.bk != null), tk = sum(hb, m => m.tk);
   if (tk) { v.botKills = sum(hb, m => m.bk); v.botPct = v.botKills / tk; }
   return v;
@@ -814,6 +818,9 @@ function avatar(r, size = "", extra = "") {
 }
 const avId = (id, size, extra) => avatar({ name: nameOf(id), color: colorOf(id) }, size, extra);
 const isOurs = id => data.players.some(p => p.id === id);
+// Tid spelad: summa av alla matches i historiken (alla lägen, inga filter)
+const totalTimePlayed = id => sum(Object.values(history.matches).filter(m => m.p[id]), m => m.p[id]?.surv || 0);
+const fmtTime = secs => { const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60); return h > 0 ? `${h} tim ${m} min` : `${m} min`; };
 
 // ---- Sektioner ----
 // Rättvis ranking:
@@ -822,6 +829,19 @@ const isOurs = id => data.players.some(p => p.id === id);
 // 2. Varje kategori räknas om till hur många standardavvikelser man ligger över eller under gänget,
 //    så att stora skillnader väger mer än små.
 // 3. Viktad summa, visad som poäng där 50 = gängets snitt.
+// Trendpil: jämför skada/match senaste 10 matcher vs 10 dessförinnan
+function trendArrow(h) {
+  if (h.length < 15) return "";
+  const last = h.slice(-10), prev = h.slice(-20, -10);
+  if (prev.length < 5) return "";
+  const adr = ms => sum(ms, m => m.dmg) / ms.length;
+  const diff = adr(last) - adr(prev);
+  if (Math.abs(diff) < 8) return ""; // för liten skillnad för att visa pil
+  return diff > 0
+    ? `<span class="trend up" title="Bättre form – +${Math.round(diff)} skada/match vs tidigare">↑</span>`
+    : `<span class="trend down" title="Sämre form – ${Math.round(diff)} skada/match vs tidigare">↓</span>`;
+}
+
 const RANK_PRIOR = 20;
 function rankingScores(played) {
   const score = new Map(played.map(r => [r.id, 0]));
@@ -870,7 +890,7 @@ function renderRanking(list) {
   }).join("") : "");
   document.getElementById("rank").innerHTML = (scored.length ? scored.map(x => {
     const why = x.strong;
-    return `<li><span class="pos">${rankPos[x.r.id]}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}<span class="why">${why}</span></span></span><span class="avg" title="50 = gängets snitt">${shown(x)} poäng</span></li>`;
+    return `<li><span class="pos">${rankPos[x.r.id]}</span><span class="who">${avatar(x.r)}<span>${esc(x.r.name)}${trendArrow(x.r.h)}<span class="why">${why}</span></span></span><span class="avg" title="50 = gängets snitt">${shown(x)} poäng</span></li>`;
   }).join("") : '<li class="msg">Ingen har spelat det här läget. Välj ett annat ovan.</li>') + rookieNote;
 }
 
@@ -939,7 +959,7 @@ function renderAwards(list) {
     return `<div class="tile ${a.shame ? "shame" : "gold"}"><span class="t-head">${a.icon} ${a.name}</span>
       <span class="t-who">${top}</span><span class="t-val">${val}</span></div>`;
   }).join("");
-  document.getElementById("awards").innerHTML = (tiles + clutchTiles(list) + mvpTiles(list) + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
+  document.getElementById("awards").innerHTML = (tiles + clutchTiles(list) + mvpTiles(list) + mostImprovedTile(list) + luckTiles(list)) || empty("Inga utmärkelser i det här läget.");
 }
 
 // 🤓 Veckans nörd: flest matcher de senaste 7 dagarna, alla matcher räknas (även solo och botmatcher)
@@ -1511,6 +1531,33 @@ function mvpTiles(list) {
       <span class="t-val">${f(rec.avg)} MVP-poäng per match, ${nightLabel(rec.first).replace(/^\S+ /, "")}: ${rec.k} kills och ${kfmt(rec.dmg)} skada på ${rec.n} matcher.</span></div>`;
 }
 
+// Mest förbättrade: jämför skada/match och K/D de senaste N matcherna mot de N dessförinnan
+function mostImprovedTile(list) {
+  const MIN = 20; // minst 20 matcher i historiken för att kvalificera
+  const eligible = list.filter(r => r.h.length >= MIN);
+  if (!eligible.length) return "";
+  const score = r => {
+    const half = Math.min(20, Math.floor(r.h.length / 2));
+    const recent = r.h.slice(-half), earlier = r.h.slice(-half * 2, -half);
+    if (!earlier.length) return null;
+    const adrRecent = sum(recent, m => m.dmg) / recent.length;
+    const adrEarlier = sum(earlier, m => m.dmg) / earlier.length;
+    const kdRecent = sum(recent, m => m.k) / Math.max(sum(recent, m => m.dead), 1);
+    const kdEarlier = sum(earlier, m => m.k) / Math.max(sum(earlier, m => m.dead), 1);
+    // Normalisera och kombinera (ADR väger mest)
+    const adrPct = adrEarlier > 0 ? (adrRecent - adrEarlier) / adrEarlier * 100 : 0;
+    const kdPct = kdEarlier > 0 ? (kdRecent - kdEarlier) / kdEarlier * 100 : 0;
+    return { r, adrRecent, adrEarlier, kdRecent, kdEarlier, adrPct, kdPct, combined: adrPct * 0.6 + kdPct * 0.4, n: half };
+  };
+  const results = eligible.map(score).filter(x => x !== null).sort((a, b) => b.combined - a.combined);
+  const best = results[0];
+  if (!best || best.combined <= 3) return ""; // minst 3% förbättring
+  const sign = v => v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`;
+  return `<div class="tile gold"><span class="t-head">📈 Mest förbättrade</span>
+    <span class="t-who">${avatar(best.r, "sm")}${esc(best.r.name)}</span>
+    <span class="t-val">Skada/match ${sign(best.adrPct)}% och K/D ${sign(best.kdPct)}% jämfört med ${best.n} matcher tidigare (${Math.round(best.adrEarlier)} → ${Math.round(best.adrRecent)} skada/match).</span></div>`;
+}
+
 function nightCard(ss, latest) {
   const real = ss.filter(m => !isBotMatch(m));
   const first = new Date(ss.at(-1).t), last = new Date(ss[0].t);
@@ -1690,8 +1737,9 @@ function renderCard(list) {
   if (r) {
     const rk = rankPos[r.id] || 0;
     const rookie = isRookie(r.id);
+    const tp = totalTimePlayed(r.id);
     const info = rookie ? `🐣 Nykomling, rankas efter ${ROOKIE_MIN} matcher utan botmatcher (${seasonRounds(r.id)} hittills)`
-      : `${rk ? `#${rk} i totalrankingen` : ""}${r.v ? `${rk ? " · " : ""}${r.v.rounds} matcher` : ""}`;
+      : `${rk ? `#${rk} i totalrankingen` : ""}${r.v ? `${rk ? " · " : ""}${r.v.rounds} matcher` : ""}${tp ? ` · ⏱ ${fmtTime(tp)}` : ""}`;
     head.innerHTML = `${avatar(r, "xl")}<div><b>${esc(r.name)}</b><span>${info}</span></div>`;
   } else head.innerHTML = "";
   if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
