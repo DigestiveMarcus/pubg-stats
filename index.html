@@ -1436,10 +1436,22 @@ function clutchTiles(list) {
   const king = Object.entries(ez).filter(([, a]) => a.length >= ENDZONE_MIN)
     .map(([id, a]) => ({ id, avg: a.reduce((x, y) => x + y, 0) / a.length, n: a.length })).sort((a, b) => a.avg - b.avg)[0];
   const r = id => list.find(x => x.id === id);
-  return (best ? `<div class="tile gold"><span class="t-head">🦸 Clutch-kungen</span>
+  const clutchInfoHtml = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
+    <div class="info-body"><p>Sist kvar från gänget i laget, minst ${CLUTCH_ALONE_S} sekunder ensam, och laget når topp 10. En clutch-vinst räknas om laget vinner hela matchen. Botmatcher räknas inte.</p>
+    <table><thead><tr><th>Spelare</th><th>Clutchar</th><th>Varav vinster</th></tr></thead><tbody>
+    ${Object.entries(cnt).sort((a, b) => b[1].n - a[1].n).filter(([id]) => ids.has(id)).map(([id, x]) => `<tr><td>${esc(nameOf(id))}</td><td>${x.n}</td><td>${x.w}</td></tr>`).join("")}
+    </tbody></table></div></details>`;
+  const ezRows = Object.entries(ez).filter(([, a]) => a.length >= ENDZONE_MIN)
+    .map(([id, a]) => ({ id, avg: a.reduce((x, y) => x + y, 0) / a.length, n: a.length })).sort((a, b) => a.avg - b.avg);
+  const endzoneInfoHtml = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
+    <div class="info-body"><p>Snitt antal spelare kvar i hela lobbyn när spelaren dör. Lägst värde = dör senast = Slutzonskungen. Dör man inom ${ENDZONE_MARGIN_S} sekunder efter en lagkompis räknas man som dead vid samma tidpunkt. Vinster räknas som 0. Minst ${ENDZONE_MIN} matcher med data krävs.</p>
+    <table><thead><tr><th>Spelare</th><th>Snitt kvar</th><th>Matcher</th></tr></thead><tbody>
+    ${ezRows.map(x => `<tr><td>${esc(nameOf(x.id))}</td><td>${Math.round(x.avg)}</td><td>${x.n}</td></tr>`).join("")}
+    </tbody></table></div></details>`;
+  return (best ? `<div class="tile gold"><span class="t-head">🦸 Clutch-kungen ${clutchInfoHtml}</span>
       <span class="t-who">${avatar(r(best[0]), "sm")}${esc(r(best[0]).name)}</span>
       <span class="t-val">Sist kvar från gänget och tog laget till topp 10 ${best[1].n} ${best[1].n === 1 ? "gång" : "gånger"}${best[1].w ? `, varav ${best[1].w} ${best[1].w === 1 ? "vinst" : "vinster"}` : ""}.</span></div>` : "") +
-    (king ? `<div class="tile gold"><span class="t-head">🏁 Slutzonskungen</span>
+    (king ? `<div class="tile gold"><span class="t-head">🏁 Slutzonskungen ${endzoneInfoHtml}</span>
       <span class="t-who">${avatar(r(king.id), "sm")}${esc(r(king.id).name)}</span>
       <span class="t-val">I snitt ${Math.round(king.avg)} spelare kvar när han dör (${king.n} matcher).</span></div>` : "");
 }
@@ -1481,10 +1493,20 @@ function mvpTiles(list) {
   const cnt = {}; mvps.forEach(x => cnt[x.id] = (cnt[x.id] || 0) + 1);
   const top = Math.max(...Object.values(cnt)), leaders = Object.keys(cnt).filter(id => cnt[id] === top);
   const rec = [...mvps].sort((a, b) => b.avg - a.avg)[0];
-  return `<div class="tile gold"><span class="t-head">⭐ MVP-samlaren</span>
+  const mvpInfoHtml = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
+    <div class="info-body"><p>Passets MVP = högst snitt av MVP-poäng per match bland dem som spelat minst halva passet. MVP-poäng per match = kills + skada ÷ 100 + placering (vinst 3, topp 5 2, topp 10 1). Botmatcher räknas inte.</p>
+    <table><thead><tr><th>Spelare</th><th>MVP-titlar</th><th>Andel pass</th></tr></thead><tbody>
+    ${Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([id, n]) => `<tr><td>${esc(r(id)?.name || "?")}</td><td>${n}</td><td>${Math.round(n / mvps.length * 100)}%</td></tr>`).join("")}
+    </tbody></table></div></details>`;
+  const recInfoHtml = `<details class="info"><summary aria-label="Hur räknas det?" title="Hur räknas det?">ⓘ</summary>
+    <div class="info-body"><p>Högsta snitt av MVP-poäng per match under ett enskilt spelpass. Ett spelpass = matcher med max ${SESSION_GAP_H} timmars paus emellan. Botmatcher räknas inte.</p>
+    <table><thead><tr><th>Spelare</th><th>Poäng/match</th><th>Pass</th><th>Matcher</th></tr></thead><tbody>
+    ${[...mvps].sort((a, b) => b.avg - a.avg).slice(0, 5).map(x => `<tr><td>${esc(r(x.id)?.name || "?")}</td><td>${f(x.avg)}</td><td>${nightLabel(x.first).replace(/^\S+ /, "")}</td><td>${x.n}</td></tr>`).join("")}
+    </tbody></table></div></details>`;
+  return `<div class="tile gold"><span class="t-head">⭐ MVP-samlaren ${mvpInfoHtml}</span>
       <span class="t-who"><span class="avs">${leaders.slice(0, 4).map(id => avatar(r(id), "sm")).join("")}</span>${leaders.length > 2 ? `Delad mellan ${leaders.length}` : leaders.map(id => esc(r(id).name)).join(" & ")}</span>
       <span class="t-val">Passets MVP ${top} av ${mvps.length} spelpass${leaders.length > 1 ? " var" : ""}.</span></div>` +
-    `<div class="tile gold"><span class="t-head">🔥 Rekordpasset</span>
+    `<div class="tile gold"><span class="t-head">🔥 Rekordpasset ${recInfoHtml}</span>
       <span class="t-who">${avatar(r(rec.id), "sm")}${esc(r(rec.id).name)}</span>
       <span class="t-val">${f(rec.avg)} MVP-poäng per match, ${nightLabel(rec.first).replace(/^\S+ /, "")}: ${rec.k} kills och ${kfmt(rec.dmg)} skada på ${rec.n} matcher.</span></div>`;
 }
