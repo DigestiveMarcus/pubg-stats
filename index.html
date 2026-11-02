@@ -75,7 +75,7 @@
   section > .note { color: var(--dust); margin: 0 0 1.25rem; max-width: 42rem; }
 
   /* Flikar */
-  .tabs { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem;
+  .tabs { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem;
     background: var(--terrain); margin: 0 -1.25rem; padding: 0.6rem 1.25rem; border-bottom: 1px solid var(--line); }
   .tabs button { display: flex; align-items: center; justify-content: center; gap: 0.55rem; min-height: 3.4rem;
     background: var(--ridge); border: 1px solid var(--line); border-radius: 6px; color: var(--sand);
@@ -380,6 +380,30 @@
     background: var(--ridge); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.45); color: var(--sand); font-size: 0.85rem; }
   .info-body p { margin: 0 0 0.6rem; line-height: 1.45; }
   .info-body table { font-size: 0.8rem; } .info-body th, .info-body td { padding: 0.3rem 0.35rem; }
+
+  /* Mortar Calculator */
+  .mcalc-layout { display: grid; grid-template-columns: 16rem 1fr; gap: 1.5rem; align-items: start; }
+  .mcalc-info { display: flex; flex-direction: column; gap: 0; }
+  .mcalc-points { border: 1px solid var(--line); border-radius: 8px 8px 0 0; overflow: hidden; }
+  .mcalc-pt { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem; background: var(--ridge); }
+  .mcalc-pt + .mcalc-pt { border-top: 1px solid var(--line); }
+  .mcalc-badge { width: 2rem; height: 2rem; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; font: 700 0.8rem/1 var(--body); }
+  .mcalc-badge.mb { background: #9BBF7A; color: #1a1f1b; }
+  .mcalc-badge.tb { background: #D0673F; color: #fff; }
+  .mcalc-pt-lbl { display: block; font-size: 0.72rem; color: var(--dust); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mcalc-pt-val { display: block; font-size: 0.88rem; color: var(--sand); }
+  .mcalc-results { border: 1px solid var(--line); border-top: none; border-radius: 0 0 8px 8px; overflow: hidden; }
+  .mcalc-res-row { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 1rem; background: var(--ridge); }
+  .mcalc-res-row + .mcalc-res-row { border-top: 1px solid var(--line); }
+  .mcalc-res-lbl { color: var(--dust); font-size: 0.85rem; }
+  .mcalc-res-val { font: 700 1.15rem/1 var(--display); color: var(--sand); }
+  .mcalc-res-val.big { font-size: 2.2rem; color: var(--pan); }
+  .mcalc-res-val.inrange { color: var(--sage); }
+  .mcalc-res-val.outrange { color: var(--blood); font-size: 1rem; }
+  .mcalc-map-wrap { position: relative; }
+  #mcCanvas { width: 100%; aspect-ratio: 1/1; display: block; border-radius: 8px; cursor: crosshair; background: var(--ridge); border: 1px solid var(--line); }
+  .mcalc-hint { text-align: center; color: var(--dust); font-size: 0.8rem; margin: 0.4rem 0 0; }
+  @media (max-width: 56rem) { .mcalc-layout { grid-template-columns: 1fr; } .mcalc-map-wrap { order: -1; } }
 </style>
 </head>
 <body>
@@ -534,6 +558,39 @@
     </div>
   </section>
 
+  <section id="s-mortar" data-nav="Mortar Calculator">
+    <h2>💣 Mortar Calculator</h2>
+    <p class="note">Klicka på kartan för att placera mortarens position (grön M), klicka igen för att sätta målet (röd T). Kalkylatorn beräknar elevationsvinkel och kompassriktning. Baserat på PUBG:s ballistics (uppskattad v ≈ 100 m/s, räckvidd 150–1 000 m).</p>
+    <div class="picker" id="mortarMapPicker" role="group" aria-label="Välj karta" style="margin-bottom:1rem"></div>
+    <div class="mcalc-layout">
+      <div class="mcalc-info">
+        <div class="mcalc-points">
+          <div class="mcalc-pt">
+            <span class="mcalc-badge mb">M</span>
+            <div><span class="mcalc-pt-lbl">Mortarposition</span><span id="mcPtA" class="mcalc-pt-val">Klicka på kartan</span></div>
+          </div>
+          <div class="mcalc-pt">
+            <span class="mcalc-badge tb">T</span>
+            <div><span class="mcalc-pt-lbl">Mål</span><span id="mcPtB" class="mcalc-pt-val">–</span></div>
+          </div>
+        </div>
+        <div class="mcalc-results">
+          <div class="mcalc-res-row"><span class="mcalc-res-lbl">Avstånd</span><span id="mcDist" class="mcalc-res-val">–</span></div>
+          <div class="mcalc-res-row"><span class="mcalc-res-lbl">Ställ in vinkel</span><span id="mcAngle" class="mcalc-res-val big">–</span></div>
+          <div class="mcalc-res-row"><span class="mcalc-res-lbl">Riktning</span><span id="mcBearing" class="mcalc-res-val">–</span></div>
+          <div class="mcalc-res-row"><span class="mcalc-res-lbl">Status</span><span id="mcStatus" class="mcalc-res-val">–</span></div>
+        </div>
+        <button class="more" id="mcClear" style="margin-top:0.75rem;width:100%;text-align:center">🗑 Rensa markeringar</button>
+        <h3 class="sub" style="margin-top:1.75rem">Referens – plant underlag</h3>
+        <div class="scroll"><table id="mortarTable"></table></div>
+      </div>
+      <div class="mcalc-map-wrap">
+        <canvas id="mcCanvas" aria-label="PUBG-karta – klicka för att placera mortar och mål"></canvas>
+        <p class="mcalc-hint" id="mcHint">Klick 1: mortarposition &nbsp;·&nbsp; Klick 2: mål &nbsp;·&nbsp; Klick 3: ny mätning</p>
+      </div>
+    </div>
+  </section>
+
   <section id="s-nights" data-nav="Spelpass">
     <h2>Spelpass</h2>
     <p class="note">En sammanfattning per spelpass, alltså matcher med mindre än 2 timmars paus emellan. Spelar ni på morgonen och sedan igen på kvällen blir det två pass. Passets MVP har högst snitt av MVP-poäng per match: kills + skada/100 + placering (vinst 3, topp 5 2, topp 10 1), bland dem som spelat minst halva passet. 🦸 Clutch = sist kvar från gänget i minst en minut och laget når topp 10. Botmatcher räknas inte.</p>
@@ -672,9 +729,11 @@ const AWARDS = [
   { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5 };
+const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5, mortarMap: null, mortarPts: { a: null, b: null, phase: "a" } };
 const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
   Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
+const MORTAR_V = 100, MORTAR_G = 9.81; // ballistics: ~1 019 m maxräckvidd vid 45°
+const MORTAR_MAPS = Object.keys(MAP_SIZE).filter(k => k !== "Range_Main" && k !== "Heaven_Main");
 let data, history = { matches: {} };
 const charts = {};
 const nameOf = id => data.players.find(p => p.id === id)?.name ?? "?";
@@ -1899,6 +1958,7 @@ const TABS = [
   { id: "spelpass", icon: "📅", label: "Spelpass", secs: ["s-nights"] },
   { id: "matcher", icon: "🎮", label: "Matcher", secs: ["s-log", "s-duos", "s-nemesis", "s-modes"] },
   { id: "vapen-kartor", icon: "🗺️", label: "Vapen & kartor", secs: ["s-guns", "s-maps", "s-geo"] },
+  { id: "mortar", icon: "💣", label: "Mortar", secs: ["s-mortar"] },
 ];
 let setTab;
 (function buildNav() {
@@ -1931,6 +1991,7 @@ let setTab;
     const home = document.getElementById("barAnchor").getBoundingClientRect().bottom + scrollY;
     if (changed && scroll && scrollY > home) scrollTo({ top: home });
     if (changed && data) { if (t.id === "vapen-kartor") renderGeo(rows()); }
+    if (t.id === "mortar") initMortarTab();
     pad();
   };
   const pad = () => {
@@ -1977,6 +2038,178 @@ function sortBy(e) {
 }
 document.getElementById("table").addEventListener("click", sortBy);
 document.getElementById("table").addEventListener("keydown", sortBy);
+
+// ---- Mortar Calculator ----
+// (MORTAR_V, MORTAR_G, MORTAR_MAPS defined near MAP_SIZE above)
+
+// Hög-bågvinkel (>45°) för givet horisontellt avstånd och höjdskillnad. Null = utom räckvidd.
+function calcMortarAngle(distance, heightDiff) {
+  const v = MORTAR_V, g = MORTAR_G;
+  if (distance <= 0) return null;
+  function yAt(deg) {
+    const th = deg * Math.PI / 180, c = Math.cos(th);
+    if (Math.abs(c) < 1e-6) return -Infinity;
+    const t = distance / (v * c);
+    return v * Math.sin(th) * t - 0.5 * g * t * t;
+  }
+  if (yAt(45) < heightDiff || yAt(89.9) > heightDiff) return null;
+  let lo = 45.0, hi = 89.9;
+  for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (yAt(mid) > heightDiff) lo = mid; else hi = mid; }
+  return Math.round((lo + hi) / 2 * 10) / 10;
+}
+
+function bearingToCardinal(deg) {
+  return ["N","NE","E","SE","S","SW","W","NW"][Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+}
+
+function buildMortarTable() {
+  const steps = [];
+  for (let d = 150; d <= 1000; d += 50) { const a = calcMortarAngle(d, 0); if (a !== null) steps.push({ d, a }); }
+  const half = Math.ceil(steps.length / 2);
+  let html = `<thead><tr><th>Avstånd</th><th>Vinkel</th><th style="border-left:1px solid var(--line)">Avstånd</th><th>Vinkel</th></tr></thead><tbody>`;
+  for (let i = 0; i < half; i++) {
+    const a = steps[i], b = steps[i + half];
+    html += `<tr><td>${a.d} m</td><td>${a.a.toFixed(1)}°</td>`;
+    html += b ? `<td style="border-left:1px solid var(--line)">${b.d} m</td><td>${b.a.toFixed(1)}°</td>` : `<td style="border-left:1px solid var(--line)">–</td><td>–</td>`;
+    html += `</tr>`;
+  }
+  document.getElementById("mortarTable").innerHTML = html + "</tbody>";
+}
+
+function drawMortarCanvas() {
+  const cv = document.getElementById("mcCanvas");
+  const key = state.mortarMap;
+  if (!key || !cv.clientWidth) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const W = Math.round(cv.clientWidth * dpr);
+  if (cv.width !== W) { cv.width = W; cv.height = W; }
+  const ctx = cv.getContext("2d");
+  const pts = state.mortarPts;
+  const size = MAP_SIZE[key];
+
+  mapImage(key, im => {
+    if (state.mortarMap !== key) return;
+    ctx.clearRect(0, 0, W, W);
+    if (im) { ctx.drawImage(im, 0, 0, W, W); ctx.fillStyle = "rgba(20,26,22,0.3)"; ctx.fillRect(0, 0, W, W); }
+    else { ctx.fillStyle = "#36403A"; ctx.fillRect(0, 0, W, W); }
+
+    // Range rings
+    if (pts.a) {
+      const ax = pts.a.x * W, ay = pts.a.y * W;
+      ctx.save();
+      ctx.setLineDash([5 * dpr, 5 * dpr]);
+      ctx.lineWidth = 1.5 * dpr;
+      for (const [rng, col] of [[150, "rgba(208,103,63,0.5)"], [1019, "rgba(155,191,122,0.5)"]]) {
+        const r = rng / size * W;
+        ctx.strokeStyle = col;
+        ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Line A→B
+    if (pts.a && pts.b) {
+      const ax = pts.a.x * W, ay = pts.a.y * W, bx = pts.b.x * W, by = pts.b.y * W;
+      ctx.save();
+      ctx.setLineDash([7 * dpr, 5 * dpr]);
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Mortar marker (A) — green circle
+    if (pts.a) {
+      const ax = pts.a.x * W, ay = pts.a.y * W, r = 11 * dpr;
+      ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2);
+      ctx.fillStyle = "#9BBF7A"; ctx.fill();
+      ctx.lineWidth = 2 * dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
+      ctx.fillStyle = "#1a1f1b"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `700 ${11 * dpr}px Barlow, system-ui, sans-serif`;
+      ctx.fillText("M", ax, ay);
+    }
+
+    // Target marker (B) — red crosshair
+    if (pts.b) {
+      const bx = pts.b.x * W, by = pts.b.y * W, r = 12 * dpr;
+      ctx.strokeStyle = "#D0673F"; ctx.lineWidth = 2.5 * dpr;
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(bx - r * 1.7, by); ctx.lineTo(bx - r * 0.4, by);
+      ctx.moveTo(bx + r * 0.4, by); ctx.lineTo(bx + r * 1.7, by);
+      ctx.moveTo(bx, by - r * 1.7); ctx.lineTo(bx, by - r * 0.4);
+      ctx.moveTo(bx, by + r * 0.4); ctx.lineTo(bx, by + r * 1.7);
+      ctx.stroke();
+    }
+  });
+}
+
+function updateMortarInfo() {
+  const pts = state.mortarPts;
+  const size = MAP_SIZE[state.mortarMap] || 8160;
+  const fmt = p => Math.round(p.x * size) + " m, " + Math.round(p.y * size) + " m";
+  document.getElementById("mcPtA").textContent = pts.a ? fmt(pts.a) : "Klicka på kartan";
+  document.getElementById("mcPtB").textContent = pts.b ? fmt(pts.b) : pts.a ? "Klicka för mål" : "–";
+  const distEl = document.getElementById("mcDist"), angleEl = document.getElementById("mcAngle");
+  const bearEl = document.getElementById("mcBearing"), statusEl = document.getElementById("mcStatus");
+  if (!pts.a || !pts.b) {
+    distEl.textContent = "–"; angleEl.textContent = "–"; angleEl.className = "mcalc-res-val big";
+    bearEl.textContent = "–"; statusEl.textContent = "–"; statusEl.className = "mcalc-res-val"; return;
+  }
+  const dx = (pts.b.x - pts.a.x) * size, dy = (pts.b.y - pts.a.y) * size;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const bearing = ((Math.atan2(dx, -dy) * 180 / Math.PI) + 360) % 360;
+  const angle = calcMortarAngle(dist, 0);
+  distEl.textContent = Math.round(dist) + " m";
+  if (angle !== null) {
+    angleEl.textContent = angle.toFixed(1) + "°"; angleEl.className = "mcalc-res-val big";
+    statusEl.textContent = "In range ✓"; statusEl.className = "mcalc-res-val inrange";
+  } else {
+    angleEl.textContent = "–"; angleEl.className = "mcalc-res-val big";
+    statusEl.textContent = dist < 150 ? "För nära (min ~150 m)" : "Utom räckvidd (max ~1 000 m)";
+    statusEl.className = "mcalc-res-val outrange";
+  }
+  bearEl.textContent = bearing.toFixed(1) + "° " + bearingToCardinal(bearing);
+}
+
+function initMortarTab() {
+  if (!state.mortarMap || !MORTAR_MAPS.includes(state.mortarMap)) state.mortarMap = MORTAR_MAPS[0];
+  const picker = document.getElementById("mortarMapPicker");
+  picker.innerHTML = MORTAR_MAPS.map(k =>
+    `<button data-map="${k}" aria-pressed="${k === state.mortarMap}">${mapName(k)}</button>`).join("");
+  buildMortarTable();
+  updateMortarInfo();
+  requestAnimationFrame(drawMortarCanvas);
+}
+
+document.getElementById("mortarMapPicker").addEventListener("click", e => {
+  const b = e.target.closest("button[data-map]"); if (!b) return;
+  state.mortarMap = b.dataset.map;
+  state.mortarPts = { a: null, b: null, phase: "a" };
+  e.currentTarget.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  updateMortarInfo(); drawMortarCanvas();
+});
+
+document.getElementById("mcCanvas").addEventListener("click", e => {
+  const cv = e.currentTarget;
+  const rect = cv.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  const pts = state.mortarPts;
+  if (pts.phase === "a") { pts.a = { x, y }; pts.b = null; pts.phase = "b"; }
+  else if (pts.phase === "b") { pts.b = { x, y }; pts.phase = "done"; }
+  else { pts.a = { x, y }; pts.b = null; pts.phase = "b"; }
+  updateMortarInfo(); drawMortarCanvas();
+});
+
+document.getElementById("mcClear").addEventListener("click", () => {
+  state.mortarPts = { a: null, b: null, phase: "a" };
+  updateMortarInfo(); drawMortarCanvas();
+});
+
+let mcResize;
+addEventListener("resize", () => { clearTimeout(mcResize); mcResize = setTimeout(drawMortarCanvas, 200); });
 
 // ---- Start ----
 // Laddar datan, och kollar sedan var 3:e minut om det kommit en ny uppdatering. I så fall ritas sidan om
