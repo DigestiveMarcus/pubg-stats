@@ -2099,25 +2099,37 @@ function drawMortarCanvas() {
   const key = state.mortarMap;
   if (!key || !cv.clientWidth) return;
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const W = Math.round(cv.clientWidth * dpr);
-  if (cv.width !== W) { cv.width = W; cv.height = W; }
-  const ctx = cv.getContext("2d");
-  const pts = state.mortarPts, size = MAP_SIZE[key], vp = state.mortarView;
-  const toCv = (nx, ny) => [(nx - vp.left) / vp.size * W, (ny - vp.top) / vp.size * W];
+  const displayW = Math.round(cv.clientWidth * dpr); // device pixels at display size
+  const vp = state.mortarView;
 
   mapImage(key, im => {
     if (state.mortarMap !== key) return;
+    const iw = im ? im.naturalWidth : displayW;
+
+    // Use the largest of: display resolution OR the source pixels we're cropping.
+    // This means "as we zoom in, the canvas grows to match image native res",
+    // eliminating the upscale artifact that causes blurriness.
+    const srcPx = Math.max(1, Math.round(vp.size * iw));
+    const W = Math.min(iw, Math.max(displayW, srcPx)); // never larger than native image
+
+    cv.width = W; cv.height = W;
+    const ctx = cv.getContext("2d");
+    const pts = state.mortarPts, size = MAP_SIZE[key];
+    // Scale all canvas-pixel sizes so markers stay visually the same size regardless of W
+    const sc = W / displayW;
+    const px = n => n * sc; // device-pixel → canvas-pixel
+    const toCv = (nx, ny) => [(nx - vp.left) / vp.size * W, (ny - vp.top) / vp.size * W];
+
     ctx.clearRect(0, 0, W, W);
     if (im) {
-      ctx.drawImage(im, vp.left * im.naturalWidth, vp.top * im.naturalHeight,
-                    vp.size * im.naturalWidth, vp.size * im.naturalHeight, 0, 0, W, W);
+      ctx.drawImage(im, vp.left * iw, vp.top * iw, vp.size * iw, vp.size * iw, 0, 0, W, W);
       ctx.fillStyle = "rgba(20,26,22,0.28)"; ctx.fillRect(0, 0, W, W);
     } else { ctx.fillStyle = "#36403A"; ctx.fillRect(0, 0, W, W); }
 
     // Range rings
     if (pts.a) {
       const [ax, ay] = toCv(pts.a.x, pts.a.y);
-      ctx.save(); ctx.setLineDash([5*dpr, 5*dpr]); ctx.lineWidth = 1.5*dpr;
+      ctx.save(); ctx.setLineDash([px(5), px(5)]); ctx.lineWidth = px(1.5);
       for (const [rng, col] of [[150, "rgba(208,103,63,0.6)"], [1019, "rgba(155,191,122,0.6)"]]) {
         ctx.strokeStyle = col;
         ctx.beginPath(); ctx.arc(ax, ay, rng / size / vp.size * W, 0, Math.PI*2); ctx.stroke();
@@ -2128,29 +2140,29 @@ function drawMortarCanvas() {
     // Line A→B
     if (pts.a && pts.b) {
       const [ax, ay] = toCv(pts.a.x, pts.a.y), [bx, by] = toCv(pts.b.x, pts.b.y);
-      ctx.save(); ctx.setLineDash([7*dpr, 5*dpr]);
-      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 2*dpr;
+      ctx.save(); ctx.setLineDash([px(7), px(5)]);
+      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = px(2);
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
       ctx.restore();
     }
 
     // Mortar marker (M)
     if (pts.a) {
-      const [ax, ay] = toCv(pts.a.x, pts.a.y), r = 11*dpr;
+      const [ax, ay] = toCv(pts.a.x, pts.a.y), r = px(11);
       ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI*2);
       ctx.fillStyle = "#9BBF7A"; ctx.fill();
-      ctx.lineWidth = 2*dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
+      ctx.lineWidth = px(2); ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
       ctx.fillStyle = "#1a1f1b"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = `700 ${11*dpr}px Barlow,system-ui,sans-serif`;
+      ctx.font = `700 ${px(11)}px Barlow,system-ui,sans-serif`;
       ctx.fillText("M", ax, ay);
     }
 
     // Target marker (T)
     if (pts.b) {
-      const [bx, by] = toCv(pts.b.x, pts.b.y), r = 12*dpr;
-      ctx.strokeStyle = "#D0673F"; ctx.lineWidth = 2.5*dpr;
+      const [bx, by] = toCv(pts.b.x, pts.b.y), r = px(12);
+      ctx.strokeStyle = "#D0673F"; ctx.lineWidth = px(2.5);
       ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.stroke();
-      ctx.lineWidth = 2*dpr;
+      ctx.lineWidth = px(2);
       ctx.beginPath();
       ctx.moveTo(bx-r*1.7, by); ctx.lineTo(bx-r*0.4, by);
       ctx.moveTo(bx+r*0.4, by); ctx.lineTo(bx+r*1.7, by);
@@ -2162,11 +2174,11 @@ function drawMortarCanvas() {
     // Zoom badge
     if (vp.size < 0.98) {
       const label = Math.round(1/vp.size) + "×";
-      ctx.font = `600 ${10*dpr}px Barlow,system-ui,sans-serif`;
-      const tw = ctx.measureText(label).width + 8*dpr;
-      ctx.fillStyle = "rgba(20,26,22,0.75)"; ctx.fillRect(W-tw-4*dpr, W-18*dpr, tw, 14*dpr);
+      ctx.font = `600 ${px(10)}px Barlow,system-ui,sans-serif`;
+      const tw = ctx.measureText(label).width + px(8);
+      ctx.fillStyle = "rgba(20,26,22,0.75)"; ctx.fillRect(W-tw-px(4), W-px(18), tw, px(14));
       ctx.fillStyle = "#ECE5D0"; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
-      ctx.fillText(label, W-8*dpr, W-5*dpr);
+      ctx.fillText(label, W-px(8), W-px(5));
     }
   });
 }
