@@ -402,7 +402,10 @@
   .mcalc-res-val.outrange { color: var(--blood); font-size: 1rem; }
   .mcalc-map-wrap { position: relative; }
   #mcCanvas { width: 100%; aspect-ratio: 1/1; display: block; border-radius: 8px; cursor: crosshair; background: var(--ridge); border: 1px solid var(--line); }
-  .mcalc-hint { text-align: center; color: var(--dust); font-size: 0.8rem; margin: 0.4rem 0 0; }
+  .mcalc-hint { text-align: center; color: var(--dust); font-size: 0.78rem; margin: 0.4rem 0 0; }
+  .mcalc-zoom-bar { position: absolute; top: 0.5rem; right: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; z-index: 2; }
+  .mcalc-zoom-bar button { width: 2.1rem; height: 2.1rem; background: rgba(43,51,44,0.88); border: 1px solid var(--line); border-radius: 5px; color: var(--sand); font: 700 1.2rem/1 var(--body); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color .12s; }
+  .mcalc-zoom-bar button:hover { border-color: var(--pan); color: var(--pan); }
   @media (max-width: 56rem) { .mcalc-layout { grid-template-columns: 1fr; } .mcalc-map-wrap { order: -1; } }
 </style>
 </head>
@@ -585,8 +588,13 @@
         <div class="scroll"><table id="mortarTable"></table></div>
       </div>
       <div class="mcalc-map-wrap">
+        <div class="mcalc-zoom-bar">
+          <button id="mcZoomIn"    aria-label="Zooma in"     title="Zooma in">+</button>
+          <button id="mcZoomOut"   aria-label="Zooma ut"     title="Zooma ut">−</button>
+          <button id="mcZoomReset" aria-label="Återställ zoom" title="Återställ zoom">⊙</button>
+        </div>
         <canvas id="mcCanvas" aria-label="PUBG-karta – klicka för att placera mortar och mål"></canvas>
-        <p class="mcalc-hint" id="mcHint">Klick 1: mortarposition &nbsp;·&nbsp; Klick 2: mål &nbsp;·&nbsp; Klick 3: ny mätning</p>
+        <p class="mcalc-hint">Klick 1: mortar &nbsp;·&nbsp; Klick 2: mål &nbsp;·&nbsp; Klick 3: ny &nbsp;·&nbsp; Scroll/nyp: zooma &nbsp;·&nbsp; Dra: panorera</p>
       </div>
     </div>
   </section>
@@ -729,7 +737,7 @@ const AWARDS = [
   { icon: "🗡️", name: "Förrädaren", key: "betray", what: "", shame: true },
 ];
 
-const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5, mortarMap: null, mortarPts: { a: null, b: null, phase: "a" } };
+const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5, mortarMap: null, mortarPts: { a: null, b: null, phase: "a" }, mortarView: { left: 0, top: 0, size: 1 } };
 const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
   Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
 const MORTAR_V = 100, MORTAR_G = 9.81; // ballistics: ~1 019 m maxräckvidd vid 45°
@@ -2076,6 +2084,16 @@ function buildMortarTable() {
   document.getElementById("mortarTable").innerHTML = html + "</tbody>";
 }
 
+// Zoom helper: cx/cy = normalized canvas focus point (0-1), factor < 1 = zoom in
+function zoomMortarAt(cx, cy, factor) {
+  const vp = state.mortarView;
+  const mx = vp.left + cx * vp.size, my = vp.top + cy * vp.size; // map coord under cursor
+  const ns = Math.max(0.04, Math.min(1, vp.size * factor));
+  vp.left = Math.max(0, Math.min(1 - ns, mx - cx * ns));
+  vp.top  = Math.max(0, Math.min(1 - ns, my - cy * ns));
+  vp.size = ns;
+}
+
 function drawMortarCanvas() {
   const cv = document.getElementById("mcCanvas");
   const key = state.mortarMap;
@@ -2084,63 +2102,71 @@ function drawMortarCanvas() {
   const W = Math.round(cv.clientWidth * dpr);
   if (cv.width !== W) { cv.width = W; cv.height = W; }
   const ctx = cv.getContext("2d");
-  const pts = state.mortarPts;
-  const size = MAP_SIZE[key];
+  const pts = state.mortarPts, size = MAP_SIZE[key], vp = state.mortarView;
+  const toCv = (nx, ny) => [(nx - vp.left) / vp.size * W, (ny - vp.top) / vp.size * W];
 
   mapImage(key, im => {
     if (state.mortarMap !== key) return;
     ctx.clearRect(0, 0, W, W);
-    if (im) { ctx.drawImage(im, 0, 0, W, W); ctx.fillStyle = "rgba(20,26,22,0.3)"; ctx.fillRect(0, 0, W, W); }
-    else { ctx.fillStyle = "#36403A"; ctx.fillRect(0, 0, W, W); }
+    if (im) {
+      ctx.drawImage(im, vp.left * im.naturalWidth, vp.top * im.naturalHeight,
+                    vp.size * im.naturalWidth, vp.size * im.naturalHeight, 0, 0, W, W);
+      ctx.fillStyle = "rgba(20,26,22,0.28)"; ctx.fillRect(0, 0, W, W);
+    } else { ctx.fillStyle = "#36403A"; ctx.fillRect(0, 0, W, W); }
 
     // Range rings
     if (pts.a) {
-      const ax = pts.a.x * W, ay = pts.a.y * W;
-      ctx.save();
-      ctx.setLineDash([5 * dpr, 5 * dpr]);
-      ctx.lineWidth = 1.5 * dpr;
-      for (const [rng, col] of [[150, "rgba(208,103,63,0.5)"], [1019, "rgba(155,191,122,0.5)"]]) {
-        const r = rng / size * W;
+      const [ax, ay] = toCv(pts.a.x, pts.a.y);
+      ctx.save(); ctx.setLineDash([5*dpr, 5*dpr]); ctx.lineWidth = 1.5*dpr;
+      for (const [rng, col] of [[150, "rgba(208,103,63,0.6)"], [1019, "rgba(155,191,122,0.6)"]]) {
         ctx.strokeStyle = col;
-        ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ax, ay, rng / size / vp.size * W, 0, Math.PI*2); ctx.stroke();
       }
       ctx.restore();
     }
 
     // Line A→B
     if (pts.a && pts.b) {
-      const ax = pts.a.x * W, ay = pts.a.y * W, bx = pts.b.x * W, by = pts.b.y * W;
-      ctx.save();
-      ctx.setLineDash([7 * dpr, 5 * dpr]);
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 2 * dpr;
+      const [ax, ay] = toCv(pts.a.x, pts.a.y), [bx, by] = toCv(pts.b.x, pts.b.y);
+      ctx.save(); ctx.setLineDash([7*dpr, 5*dpr]);
+      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 2*dpr;
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
       ctx.restore();
     }
 
-    // Mortar marker (A) — green circle
+    // Mortar marker (M)
     if (pts.a) {
-      const ax = pts.a.x * W, ay = pts.a.y * W, r = 11 * dpr;
-      ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2);
+      const [ax, ay] = toCv(pts.a.x, pts.a.y), r = 11*dpr;
+      ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI*2);
       ctx.fillStyle = "#9BBF7A"; ctx.fill();
-      ctx.lineWidth = 2 * dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
+      ctx.lineWidth = 2*dpr; ctx.strokeStyle = "#1a1f1b"; ctx.stroke();
       ctx.fillStyle = "#1a1f1b"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = `700 ${11 * dpr}px Barlow, system-ui, sans-serif`;
+      ctx.font = `700 ${11*dpr}px Barlow,system-ui,sans-serif`;
       ctx.fillText("M", ax, ay);
     }
 
-    // Target marker (B) — red crosshair
+    // Target marker (T)
     if (pts.b) {
-      const bx = pts.b.x * W, by = pts.b.y * W, r = 12 * dpr;
-      ctx.strokeStyle = "#D0673F"; ctx.lineWidth = 2.5 * dpr;
-      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.lineWidth = 2 * dpr;
+      const [bx, by] = toCv(pts.b.x, pts.b.y), r = 12*dpr;
+      ctx.strokeStyle = "#D0673F"; ctx.lineWidth = 2.5*dpr;
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI*2); ctx.stroke();
+      ctx.lineWidth = 2*dpr;
       ctx.beginPath();
-      ctx.moveTo(bx - r * 1.7, by); ctx.lineTo(bx - r * 0.4, by);
-      ctx.moveTo(bx + r * 0.4, by); ctx.lineTo(bx + r * 1.7, by);
-      ctx.moveTo(bx, by - r * 1.7); ctx.lineTo(bx, by - r * 0.4);
-      ctx.moveTo(bx, by + r * 0.4); ctx.lineTo(bx, by + r * 1.7);
+      ctx.moveTo(bx-r*1.7, by); ctx.lineTo(bx-r*0.4, by);
+      ctx.moveTo(bx+r*0.4, by); ctx.lineTo(bx+r*1.7, by);
+      ctx.moveTo(bx, by-r*1.7); ctx.lineTo(bx, by-r*0.4);
+      ctx.moveTo(bx, by+r*0.4); ctx.lineTo(bx, by+r*1.7);
       ctx.stroke();
+    }
+
+    // Zoom badge
+    if (vp.size < 0.98) {
+      const label = Math.round(1/vp.size) + "×";
+      ctx.font = `600 ${10*dpr}px Barlow,system-ui,sans-serif`;
+      const tw = ctx.measureText(label).width + 8*dpr;
+      ctx.fillStyle = "rgba(20,26,22,0.75)"; ctx.fillRect(W-tw-4*dpr, W-18*dpr, tw, 14*dpr);
+      ctx.fillStyle = "#ECE5D0"; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+      ctx.fillText(label, W-8*dpr, W-5*dpr);
     }
   });
 }
@@ -2183,23 +2209,20 @@ function initMortarTab() {
   requestAnimationFrame(drawMortarCanvas);
 }
 
+function placeMortarPt(nx, ny) {
+  const pts = state.mortarPts;
+  if (pts.phase === "a") { pts.a = { x: nx, y: ny }; pts.b = null; pts.phase = "b"; }
+  else if (pts.phase === "b") { pts.b = { x: nx, y: ny }; pts.phase = "done"; }
+  else { pts.a = { x: nx, y: ny }; pts.b = null; pts.phase = "b"; }
+  updateMortarInfo(); drawMortarCanvas();
+}
+
 document.getElementById("mortarMapPicker").addEventListener("click", e => {
   const b = e.target.closest("button[data-map]"); if (!b) return;
   state.mortarMap = b.dataset.map;
   state.mortarPts = { a: null, b: null, phase: "a" };
+  state.mortarView = { left: 0, top: 0, size: 1 };
   e.currentTarget.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
-  updateMortarInfo(); drawMortarCanvas();
-});
-
-document.getElementById("mcCanvas").addEventListener("click", e => {
-  const cv = e.currentTarget;
-  const rect = cv.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
-  const pts = state.mortarPts;
-  if (pts.phase === "a") { pts.a = { x, y }; pts.b = null; pts.phase = "b"; }
-  else if (pts.phase === "b") { pts.b = { x, y }; pts.phase = "done"; }
-  else { pts.a = { x, y }; pts.b = null; pts.phase = "b"; }
   updateMortarInfo(); drawMortarCanvas();
 });
 
@@ -2207,6 +2230,102 @@ document.getElementById("mcClear").addEventListener("click", () => {
   state.mortarPts = { a: null, b: null, phase: "a" };
   updateMortarInfo(); drawMortarCanvas();
 });
+
+// Zoom buttons
+document.getElementById("mcZoomIn").addEventListener("click",    () => { zoomMortarAt(0.5, 0.5, 0.6); drawMortarCanvas(); });
+document.getElementById("mcZoomOut").addEventListener("click",   () => { zoomMortarAt(0.5, 0.5, 1.67); drawMortarCanvas(); });
+document.getElementById("mcZoomReset").addEventListener("click", () => { state.mortarView = { left: 0, top: 0, size: 1 }; drawMortarCanvas(); });
+
+// Mouse wheel zoom
+const mcCv = document.getElementById("mcCanvas");
+mcCv.addEventListener("wheel", e => {
+  e.preventDefault();
+  const rect = mcCv.getBoundingClientRect();
+  zoomMortarAt((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, e.deltaY < 0 ? 0.75 : 1.33);
+  drawMortarCanvas();
+}, { passive: false });
+
+// Mouse drag + click
+let mcDrag = null;
+mcCv.addEventListener("mousedown", e => {
+  mcDrag = { x0: e.clientX, y0: e.clientY, l0: state.mortarView.left, t0: state.mortarView.top, moved: false };
+  mcCv.style.cursor = "grabbing";
+});
+addEventListener("mousemove", e => {
+  if (!mcDrag) return;
+  const rect = mcCv.getBoundingClientRect();
+  const dx = (e.clientX - mcDrag.x0) / rect.width  * state.mortarView.size;
+  const dy = (e.clientY - mcDrag.y0) / rect.height * state.mortarView.size;
+  if (Math.abs(e.clientX - mcDrag.x0) > 5 || Math.abs(e.clientY - mcDrag.y0) > 5) mcDrag.moved = true;
+  const vp = state.mortarView;
+  vp.left = Math.max(0, Math.min(1 - vp.size, mcDrag.l0 - dx));
+  vp.top  = Math.max(0, Math.min(1 - vp.size, mcDrag.t0 - dy));
+  drawMortarCanvas();
+});
+addEventListener("mouseup", e => {
+  if (!mcDrag) return;
+  mcCv.style.cursor = "crosshair";
+  if (!mcDrag.moved) {
+    const rect = mcCv.getBoundingClientRect();
+    const cx = (e.clientX - rect.left) / rect.width, cy = (e.clientY - rect.top) / rect.height;
+    if (cx >= 0 && cx <= 1 && cy >= 0 && cy <= 1) {
+      const vp = state.mortarView;
+      placeMortarPt(vp.left + cx * vp.size, vp.top + cy * vp.size);
+    }
+  }
+  mcDrag = null;
+});
+
+// Touch: single finger = drag/tap, two fingers = pinch zoom
+let mcPinch = null;
+mcCv.addEventListener("touchstart", e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    mcDrag = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, l0: state.mortarView.left, t0: state.mortarView.top, moved: false };
+    mcPinch = null;
+  } else if (e.touches.length === 2) {
+    mcDrag = null;
+    const [t1, t2] = e.touches;
+    mcPinch = { dist0: Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY), size0: state.mortarView.size,
+                l0: state.mortarView.left, t0: state.mortarView.top,
+                cx: (t1.clientX+t2.clientX)/2, cy: (t1.clientY+t2.clientY)/2 };
+  }
+}, { passive: false });
+
+mcCv.addEventListener("touchmove", e => {
+  e.preventDefault();
+  const rect = mcCv.getBoundingClientRect();
+  if (e.touches.length === 2 && mcPinch) {
+    const [t1, t2] = e.touches;
+    const dist = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+    const cx = (mcPinch.cx - rect.left) / rect.width, cy = (mcPinch.cy - rect.top) / rect.height;
+    const mx = mcPinch.l0 + cx * mcPinch.size0, my = mcPinch.t0 + cy * mcPinch.size0;
+    const ns = Math.max(0.04, Math.min(1, mcPinch.size0 * mcPinch.dist0 / dist));
+    const vp = state.mortarView;
+    vp.left = Math.max(0, Math.min(1-ns, mx - cx*ns));
+    vp.top  = Math.max(0, Math.min(1-ns, my - cy*ns));
+    vp.size = ns;
+    drawMortarCanvas();
+  } else if (e.touches.length === 1 && mcDrag) {
+    const dx = (e.touches[0].clientX - mcDrag.x0) / rect.width  * state.mortarView.size;
+    const dy = (e.touches[0].clientY - mcDrag.y0) / rect.height * state.mortarView.size;
+    if (Math.abs(e.touches[0].clientX - mcDrag.x0) > 8 || Math.abs(e.touches[0].clientY - mcDrag.y0) > 8) mcDrag.moved = true;
+    const vp = state.mortarView;
+    vp.left = Math.max(0, Math.min(1-vp.size, mcDrag.l0 - dx));
+    vp.top  = Math.max(0, Math.min(1-vp.size, mcDrag.t0 - dy));
+    drawMortarCanvas();
+  }
+}, { passive: false });
+
+mcCv.addEventListener("touchend", e => {
+  if (e.touches.length === 0 && mcDrag && !mcDrag.moved) {
+    const rect = mcCv.getBoundingClientRect(), t = e.changedTouches[0];
+    const cx = (t.clientX - rect.left) / rect.width, cy = (t.clientY - rect.top) / rect.height;
+    const vp = state.mortarView;
+    placeMortarPt(vp.left + cx * vp.size, vp.top + cy * vp.size);
+  }
+  if (e.touches.length === 0) { mcDrag = null; mcPinch = null; }
+}, { passive: false });
 
 let mcResize;
 addEventListener("resize", () => { clearTimeout(mcResize); mcResize = setTimeout(drawMortarCanvas, 200); });
