@@ -630,7 +630,9 @@ const M = {
   hs:      { label: "Headshots",         fmt: pct(0) },
   long:    { label: "Längsta kill",      fmt: v => Math.round(v) + " m" },
   win:     { label: "Vinster",           fmt: pct(1) },
+  wins:    { label: "Antal vinster",     fmt: v => v },
   top10:   { label: "Topp 10",           fmt: pct(0) },
+  top10s:  { label: "Antal topp 10",     fmt: v => v },
   surv:    { label: "Överlevnad/match",  fmt: time },
   revives: { label: "Revives",           fmt: v => v },
   revPm:   { label: "Revives/match",     fmt: v => v.toFixed(2) },
@@ -1744,7 +1746,7 @@ function renderCard(list) {
   } else head.innerHTML = "";
   if (!r?.v) { card.innerHTML = empty("Inga matcher i det här läget."); destroy("outcome"); destroy("placeChart"); return; }
   const played = list.filter(x => x.v);
-  const keys = ["kd", "adr", "win", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct", "teamKills", "teamKnocks"];
+  const keys = ["kd", "adr", "wins", "win", "top10s", "top10", "hs", "long", "surv", "revives", "deaths", "knocked", "botPct", "firstPct", "teamKills", "teamKnocks"];
   card.innerHTML = `<dl>${keys.filter(k => has(r, k)).map(k => {
     const pos = ranks(played, k)(r);
     return `<dt>${M[k].label}</dt><dd>${M[k].fmt(r.v[k])}</dd><dd class="r${pos === 1 ? " top" : ""}">#${pos}</dd>`;
