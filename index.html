@@ -740,7 +740,7 @@ const AWARDS = [
 const state = { scope: "since", mode: "all", view: "fpp", sort: "kd", player: null, a: null, b: null, gun: "all", geoLayer: "ld", geoMap: null, geoPlayer: "all", logN: 15, nightsN: 5, mortarMap: null, mortarPts: { a: null, b: null, phase: "a" }, mortarView: { left: 0, top: 0, size: 1 } };
 const MAP_SIZE = { Baltic_Main: 8160, Erangel_Main: 8160, Desert_Main: 8160, Tiger_Main: 8160, DihorOtok_Main: 8160, Kiki_Main: 8160,
   Neon_Main: 8160, Savage_Main: 4080, Chimera_Main: 3060, Summerland_Main: 2040, Heaven_Main: 1020 }; // meter
-const MORTAR_V = 100, MORTAR_G = 9.81; // ballistics: ~1 019 m maxräckvidd vid 45°
+const MORTAR_V = 100, MORTAR_G = 9.81, MORTAR_MIN_R = 150; // ballistics: ~1 019 m maxräckvidd vid 45°, min 150 m
 const MORTAR_MAPS = Object.keys(MAP_SIZE).filter(k => k !== "Range_Main" && k !== "Heaven_Main");
 let data, history = { matches: {} };
 const charts = {};
@@ -1377,9 +1377,13 @@ function renderMaps(list) {
 
 const mapImgs = {};
 function mapImage(key, done) {
-  if (mapImgs[key]) { if (mapImgs[key].complete) done(mapImgs[key]); else mapImgs[key].addEventListener("load", () => done(mapImgs[key]), { once: true }); return; }
+  if (mapImgs[key]) {
+    if (mapImgs[key].complete) done(mapImgs[key].naturalWidth ? mapImgs[key] : null);
+    else mapImgs[key].addEventListener("load", () => done(mapImgs[key]), { once: true });
+    return;
+  }
   const im = new Image(); mapImgs[key] = im;
-  im.onload = () => done(im); im.onerror = () => done(null);
+  im.onload = () => done(im); im.onerror = () => { done(null); };
   im.src = `maps/${key}.jpg`;
 }
 function palette(stops) {
@@ -2051,7 +2055,7 @@ document.getElementById("table").addEventListener("keydown", sortBy);
 // (MORTAR_V, MORTAR_G, MORTAR_MAPS defined near MAP_SIZE above)
 
 // Hög-bågvinkel (>45°) för givet horisontellt avstånd och höjdskillnad. Null = utom räckvidd.
-const MORTAR_MIN_R = 150; // meter, minimumräckvidd
+// (MORTAR_MIN_R definierad nära MAP_SIZE ovan)
 
 function calcMortarAngle(distance, heightDiff) {
   const v = MORTAR_V, g = MORTAR_G;
@@ -2106,13 +2110,13 @@ function drawMortarCanvas() {
 
   mapImage(key, im => {
     if (state.mortarMap !== key) return;
-    const iw = im ? im.naturalWidth : displayW;
+    const iw = (im && im.naturalWidth) ? im.naturalWidth : displayW;
 
     // Use the largest of: display resolution OR the source pixels we're cropping.
     // This means "as we zoom in, the canvas grows to match image native res",
     // eliminating the upscale artifact that causes blurriness.
     const srcPx = Math.max(1, Math.round(vp.size * iw));
-    const W = Math.min(iw, Math.max(displayW, srcPx)); // never larger than native image
+    const W = Math.max(1, Math.min(iw, Math.max(displayW, srcPx))); // never larger than native image
 
     cv.width = W; cv.height = W;
     const ctx = cv.getContext("2d");
@@ -2134,11 +2138,11 @@ function drawMortarCanvas() {
       const minR = MORTAR_MIN_R / size / vp.size * W;
       const maxR = 1019       / size / vp.size * W;
       ctx.save(); ctx.setLineDash([]);
-      // Filled donut: green tint between min and max range
-      ctx.beginPath();
-      ctx.arc(ax, ay, maxR, 0, Math.PI*2);       // outer (CW)
-      ctx.arc(ax, ay, minR, 0, Math.PI*2, true); // inner hole (CCW)
-      ctx.fillStyle = "rgba(155,191,122,0.13)"; ctx.fill("evenodd");
+      // Filled donut: green tint between min and max range (Path2D for reliable evenodd support)
+      const donut = new Path2D();
+      donut.arc(ax, ay, maxR, 0, Math.PI * 2);
+      donut.arc(ax, ay, minR, 0, Math.PI * 2, true);
+      ctx.fillStyle = "rgba(155,191,122,0.13)"; ctx.fill(donut, "evenodd");
       // Dead zone fill inside min range: subtle red
       ctx.beginPath(); ctx.arc(ax, ay, minR, 0, Math.PI*2);
       ctx.fillStyle = "rgba(208,103,63,0.10)"; ctx.fill();
