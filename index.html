@@ -2051,9 +2051,11 @@ document.getElementById("table").addEventListener("keydown", sortBy);
 // (MORTAR_V, MORTAR_G, MORTAR_MAPS defined near MAP_SIZE above)
 
 // Hög-bågvinkel (>45°) för givet horisontellt avstånd och höjdskillnad. Null = utom räckvidd.
+const MORTAR_MIN_R = 150; // meter, minimumräckvidd
+
 function calcMortarAngle(distance, heightDiff) {
   const v = MORTAR_V, g = MORTAR_G;
-  if (distance <= 0) return null;
+  if (distance <= 0 || distance < MORTAR_MIN_R) return null;
   function yAt(deg) {
     const th = deg * Math.PI / 180, c = Math.cos(th);
     if (Math.abs(c) < 1e-6) return -Infinity;
@@ -2126,14 +2128,26 @@ function drawMortarCanvas() {
       ctx.fillStyle = "rgba(20,26,22,0.28)"; ctx.fillRect(0, 0, W, W);
     } else { ctx.fillStyle = "#36403A"; ctx.fillRect(0, 0, W, W); }
 
-    // Range rings
+    // Range rings — filled firing zone (donut) + solid outlines
     if (pts.a) {
       const [ax, ay] = toCv(pts.a.x, pts.a.y);
-      ctx.save(); ctx.setLineDash([px(5), px(5)]); ctx.lineWidth = px(1.5);
-      for (const [rng, col] of [[150, "rgba(208,103,63,0.6)"], [1019, "rgba(155,191,122,0.6)"]]) {
-        ctx.strokeStyle = col;
-        ctx.beginPath(); ctx.arc(ax, ay, rng / size / vp.size * W, 0, Math.PI*2); ctx.stroke();
-      }
+      const minR = MORTAR_MIN_R / size / vp.size * W;
+      const maxR = 1019       / size / vp.size * W;
+      ctx.save(); ctx.setLineDash([]);
+      // Filled donut: green tint between min and max range
+      ctx.beginPath();
+      ctx.arc(ax, ay, maxR, 0, Math.PI*2);       // outer (CW)
+      ctx.arc(ax, ay, minR, 0, Math.PI*2, true); // inner hole (CCW)
+      ctx.fillStyle = "rgba(155,191,122,0.13)"; ctx.fill("evenodd");
+      // Dead zone fill inside min range: subtle red
+      ctx.beginPath(); ctx.arc(ax, ay, minR, 0, Math.PI*2);
+      ctx.fillStyle = "rgba(208,103,63,0.10)"; ctx.fill();
+      // Max range ring — solid green
+      ctx.beginPath(); ctx.arc(ax, ay, maxR, 0, Math.PI*2);
+      ctx.strokeStyle = "rgba(155,191,122,0.9)"; ctx.lineWidth = px(2); ctx.stroke();
+      // Min range ring — solid red
+      ctx.beginPath(); ctx.arc(ax, ay, minR, 0, Math.PI*2);
+      ctx.strokeStyle = "rgba(208,103,63,0.95)"; ctx.lineWidth = px(2); ctx.stroke();
       ctx.restore();
     }
 
@@ -2205,7 +2219,7 @@ function updateMortarInfo() {
     statusEl.textContent = "In range ✓"; statusEl.className = "mcalc-res-val inrange";
   } else {
     angleEl.textContent = "–"; angleEl.className = "mcalc-res-val big";
-    statusEl.textContent = dist < 150 ? "För nära (min ~150 m)" : "Utom räckvidd (max ~1 000 m)";
+    statusEl.textContent = dist < MORTAR_MIN_R ? "För nära (min ~150 m)" : "Utom räckvidd (max ~1 000 m)";
     statusEl.className = "mcalc-res-val outrange";
   }
   bearEl.textContent = bearing.toFixed(1) + "° " + bearingToCardinal(bearing);
