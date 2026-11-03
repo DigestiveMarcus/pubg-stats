@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-03T16:00:43.414Z",
+ "updated": "2026-11-03T19:39:50.399Z",
  "season": "division.bro.official.pc-2018-43",
  "players": [
   {
@@ -519,37 +519,37 @@
     },
     "account.56342f05f9c94687a6c21f01c9b7f706": {
      "assists": 0,
-     "boosts": 1,
+     "boosts": 2,
      "dBNOs": 0,
-     "dailyKills": 5,
+     "dailyKills": 10,
      "dailyWins": 0,
-     "damageDealt": 516,
+     "damageDealt": 1026.5128,
      "days": 1,
-     "headshotKills": 3,
-     "heals": 0,
+     "headshotKills": 5,
+     "heals": 1,
      "killPoints": 0,
-     "kills": 5,
-     "longestKill": 21.07782,
-     "longestTimeSurvived": 890,
-     "losses": 2,
+     "kills": 10,
+     "longestKill": 159.06186,
+     "longestTimeSurvived": 1085,
+     "losses": 3,
      "maxKillStreaks": 1,
-     "mostSurvivalTime": 890,
+     "mostSurvivalTime": 1085,
      "rankPoints": 0,
      "rankPointsTitle": "",
      "revives": 0,
      "rideDistance": 0,
      "roadKills": 0,
      "roundMostKills": 5,
-     "roundsPlayed": 2,
+     "roundsPlayed": 3,
      "suicides": 0,
      "swimDistance": 0,
      "teamKills": 0,
-     "timeSurvived": 1356,
+     "timeSurvived": 2441,
      "top10s": 1,
      "vehicleDestroys": 0,
-     "walkDistance": 3336.155,
-     "weaponsAcquired": 7,
-     "weeklyKills": 5,
+     "walkDistance": 5467.0635,
+     "weaponsAcquired": 11,
+     "weeklyKills": 10,
      "weeklyWins": 0,
      "winPoints": 0,
      "wins": 0
@@ -2087,37 +2087,37 @@
     },
     "account.56342f05f9c94687a6c21f01c9b7f706": {
      "assists": 0,
-     "boosts": 1,
+     "boosts": 2,
      "dBNOs": 0,
-     "dailyKills": 5,
+     "dailyKills": 10,
      "dailyWins": 0,
-     "damageDealt": 516,
+     "damageDealt": 1026.5128,
      "days": 1,
-     "headshotKills": 3,
-     "heals": 0,
+     "headshotKills": 5,
+     "heals": 1,
      "killPoints": 0,
-     "kills": 5,
-     "longestKill": 21.07782,
-     "longestTimeSurvived": 890,
-     "losses": 2,
+     "kills": 10,
+     "longestKill": 159.06186,
+     "longestTimeSurvived": 1085,
+     "losses": 3,
      "maxKillStreaks": 1,
-     "mostSurvivalTime": 890,
+     "mostSurvivalTime": 1085,
      "rankPoints": 0,
      "rankPointsTitle": "",
      "revives": 0,
      "rideDistance": 0,
      "roadKills": 0,
      "roundMostKills": 5,
-     "roundsPlayed": 2,
+     "roundsPlayed": 3,
      "suicides": 0,
      "swimDistance": 0,
      "teamKills": 0,
-     "timeSurvived": 1356,
+     "timeSurvived": 2441,
      "top10s": 1,
      "vehicleDestroys": 0,
-     "walkDistance": 3336.155,
-     "weaponsAcquired": 7,
-     "weeklyKills": 5,
+     "walkDistance": 5467.0635,
+     "weaponsAcquired": 11,
+     "weeklyKills": 10,
      "weeklyWins": 0,
      "winPoints": 0,
      "wins": 0
@@ -3171,9 +3171,9 @@
  },
  "status": {
   "account.84af3ee630b548609896376f2733385e": {
-   "online": false,
-   "last": "2026-11-02T21:14:44Z",
-   "lastEnd": "2026-11-02T21:42:20.000Z"
+   "online": true,
+   "last": "2026-11-03T19:02:55Z",
+   "lastEnd": "2026-11-03T19:23:57.000Z"
   },
   "account.070de68f812c4532b018aadbc9ef44b4": {
    "online": false,
@@ -3191,9 +3191,9 @@
    "lastEnd": "2026-10-21T20:22:59.000Z"
   },
   "account.06f7d2e645634815897e09bbaba4fc50": {
-   "online": false,
-   "last": "2026-11-02T21:14:44Z",
-   "lastEnd": "2026-11-02T21:42:20.000Z"
+   "online": true,
+   "last": "2026-11-03T19:02:55Z",
+   "lastEnd": "2026-11-03T19:23:57.000Z"
   },
   "account.5f8ad53ff61f426a831ae4b42dd36a24": {
    "online": false,
@@ -3201,9 +3201,9 @@
    "lastEnd": "2026-11-03T13:59:34.000Z"
   },
   "account.56342f05f9c94687a6c21f01c9b7f706": {
-   "online": false,
-   "last": "2026-11-03T15:18:27Z",
-   "lastEnd": "2026-11-03T15:26:13.000Z"
+   "online": true,
+   "last": "2026-11-03T19:02:55Z",
+   "lastEnd": "2026-11-03T19:19:43.000Z"
   }
  }
 }
