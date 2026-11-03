@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-03T09:33:59.258Z",
+ "updated": "2026-11-03T15:08:37.790Z",
  "season": "division.bro.official.pc-2018-43",
  "players": [
   {
@@ -494,7 +494,7 @@
      "kills": 106,
      "longestKill": 188.07967,
      "longestTimeSurvived": 1660,
-     "losses": 54,
+     "losses": 55,
      "maxKillStreaks": 2,
      "mostSurvivalTime": 1660,
      "rankPoints": 0,
@@ -503,15 +503,15 @@
      "rideDistance": 19720.969,
      "roadKills": 0,
      "roundMostKills": 11,
-     "roundsPlayed": 56,
+     "roundsPlayed": 57,
      "suicides": 1,
      "swimDistance": 96.08894,
      "teamKills": 0,
-     "timeSurvived": 24566,
+     "timeSurvived": 24745,
      "top10s": 10,
      "vehicleDestroys": 0,
-     "walkDistance": 59868.883,
-     "weaponsAcquired": 347,
+     "walkDistance": 60091.918,
+     "weaponsAcquired": 353,
      "weeklyKills": 12,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -2062,7 +2062,7 @@
      "kills": 106,
      "longestKill": 188.07967,
      "longestTimeSurvived": 1660,
-     "losses": 54,
+     "losses": 55,
      "maxKillStreaks": 2,
      "mostSurvivalTime": 1660,
      "rankPoints": 0,
@@ -2071,15 +2071,15 @@
      "rideDistance": 19720.969,
      "roadKills": 0,
      "roundMostKills": 11,
-     "roundsPlayed": 56,
+     "roundsPlayed": 57,
      "suicides": 1,
      "swimDistance": 96.08894,
      "teamKills": 0,
-     "timeSurvived": 24566,
+     "timeSurvived": 24745,
      "top10s": 10,
      "vehicleDestroys": 0,
-     "walkDistance": 59868.883,
-     "weaponsAcquired": 347,
+     "walkDistance": 60091.918,
+     "weaponsAcquired": 353,
      "weeklyKills": 12,
      "weeklyWins": 0,
      "winPoints": 0,
@@ -3197,13 +3197,13 @@
   },
   "account.5f8ad53ff61f426a831ae4b42dd36a24": {
    "online": false,
-   "last": "2026-11-03T00:11:09Z",
-   "lastEnd": "2026-11-03T00:38:49.000Z"
+   "last": "2026-11-03T13:56:35Z",
+   "lastEnd": "2026-11-03T13:59:34.000Z"
   },
   "account.56342f05f9c94687a6c21f01c9b7f706": {
    "online": false,
-   "last": "2026-11-02T20:57:36Z",
-   "lastEnd": "2026-11-02T21:12:25.000Z"
+   "last": "2026-11-03T10:34:38Z",
+   "lastEnd": "2026-11-03T10:49:28.000Z"
   }
  }
 }
