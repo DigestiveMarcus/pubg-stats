@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-17T14:16:21.935Z",
+ "updated": "2026-11-17T22:26:15.345Z",
  "season": "division.bro.official.pc-2018-44",
  "players": [
   {
@@ -519,16 +519,16 @@
     },
     "account.56342f05f9c94687a6c21f01c9b7f706": {
      "assists": 0,
-     "boosts": 28,
+     "boosts": 35,
      "dBNOs": 0,
-     "dailyKills": 1,
-     "dailyWins": 0,
-     "damageDealt": 5530.751,
-     "days": 6,
-     "headshotKills": 16,
-     "heals": 35,
+     "dailyKills": 8,
+     "dailyWins": 1,
+     "damageDealt": 6323.682,
+     "days": 7,
+     "headshotKills": 19,
+     "heals": 39,
      "killPoints": 0,
-     "kills": 56,
+     "kills": 64,
      "longestKill": 334.76382,
      "longestTimeSurvived": 1668,
      "losses": 18,
@@ -540,19 +540,19 @@
      "rideDistance": 6338.0073,
      "roadKills": 0,
      "roundMostKills": 13,
-     "roundsPlayed": 19,
+     "roundsPlayed": 20,
      "suicides": 0,
-     "swimDistance": 571.5608,
+     "swimDistance": 605.8776,
      "teamKills": 0,
-     "timeSurvived": 14410,
-     "top10s": 3,
+     "timeSurvived": 16038,
+     "top10s": 4,
      "vehicleDestroys": 0,
-     "walkDistance": 36957.35,
-     "weaponsAcquired": 105,
-     "weeklyKills": 19,
+     "walkDistance": 42519.734,
+     "weaponsAcquired": 116,
+     "weeklyKills": 8,
      "weeklyWins": 1,
      "winPoints": 0,
-     "wins": 1
+     "wins": 2
     }
    },
    "duo": {
@@ -2087,16 +2087,16 @@
     },
     "account.56342f05f9c94687a6c21f01c9b7f706": {
      "assists": 0,
-     "boosts": 30,
+     "boosts": 37,
      "dBNOs": 0,
-     "dailyKills": 1,
-     "dailyWins": 0,
-     "damageDealt": 6557.2637,
-     "days": 7,
-     "headshotKills": 21,
-     "heals": 36,
+     "dailyKills": 8,
+     "dailyWins": 1,
+     "damageDealt": 7350.195,
+     "days": 8,
+     "headshotKills": 24,
+     "heals": 40,
      "killPoints": 0,
-     "kills": 66,
+     "kills": 74,
      "longestKill": 334.76382,
      "longestTimeSurvived": 1668,
      "losses": 21,
@@ -2108,19 +2108,19 @@
      "rideDistance": 6338.0073,
      "roadKills": 0,
      "roundMostKills": 13,
-     "roundsPlayed": 22,
+     "roundsPlayed": 23,
      "suicides": 0,
-     "swimDistance": 571.5608,
+     "swimDistance": 605.8776,
      "teamKills": 0,
-     "timeSurvived": 16851,
-     "top10s": 4,
+     "timeSurvived": 18479,
+     "top10s": 5,
      "vehicleDestroys": 0,
-     "walkDistance": 42424.418,
-     "weaponsAcquired": 116,
-     "weeklyKills": 19,
+     "walkDistance": 47986.8,
+     "weaponsAcquired": 127,
+     "weeklyKills": 8,
      "weeklyWins": 1,
      "winPoints": 0,
-     "wins": 1
+     "wins": 2
     }
    },
    "duo": {
@@ -3202,8 +3202,8 @@
   },
   "account.56342f05f9c94687a6c21f01c9b7f706": {
    "online": false,
-   "last": "2026-11-15T19:24:56Z",
-   "lastEnd": "2026-11-15T19:35:01.000Z"
+   "last": "2026-11-17T14:16:25Z",
+   "lastEnd": "2026-11-17T14:43:33.000Z"
   }
  }
 }
